@@ -94,7 +94,9 @@ class ExpenseService:
         return group
 
     @staticmethod
-    def _calculate_debt_matrix(expenses: List[Expense]) -> Dict[Tuple[User, User], float]:
+    def _calculate_debt_matrix(
+        expenses: List[Expense],
+    ) -> Dict[Tuple[User, User], float]:
         raw_debts: Dict[Tuple[User, User], float] = {}
 
         for expense in expenses:
