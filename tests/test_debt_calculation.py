@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pytest
 from domain import User
 from domains.group.repository import GroupRepository
@@ -266,7 +266,5 @@ class TestSettlementPlan:
             debtors={user_alice}
         )
         
-        debts = expense_service.calculate_debts(group_with_users.id)
-        
-   
-        assert len(debts) == 0
+        plan = expense_service.get_settlement_plan(group_with_users.id)
+        assert len(plan) == 0
