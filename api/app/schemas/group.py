@@ -9,7 +9,6 @@ from pydantic import BaseModel
 
 class GroupCreateRequest(BaseModel):
     name: str
-    user_id: uuid.UUID
     type: str | None = None
     currency_code: str = "USD"
     cover_image: str | None = None

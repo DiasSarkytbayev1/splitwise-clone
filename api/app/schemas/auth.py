@@ -29,3 +29,10 @@ class UserResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class AuthResponse(BaseModel):
+    """Response for login and register endpoints with JWT token."""
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse

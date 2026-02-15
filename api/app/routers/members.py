@@ -7,12 +7,38 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db
+from app.auth import get_current_user
 from app.models.group import Group
 from app.models.group_member import GroupMember
-from app.models.user import User
+from app.models.user import User as UserModel
 from app.schemas.member import AddMemberRequest, InviteCodeResponse, MemberResponse
 
 router = APIRouter(prefix="/groups/{group_id}/members", tags=["Group Members"])
+
+
+async def _verify_group_exists(db: AsyncSession, group_id: uuid.UUID) -> None:
+    """Verify that a group exists, raise 404 if not."""
+    group = await db.get(Group, group_id)
+    if group is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found"
+        )
+
+
+async def _verify_user_in_group(db: AsyncSession, group_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    """Verify that a user is a member of the group."""
+    result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == user_id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a member of this group"
+        )
 
 
 async def _get_member_with_user(db: AsyncSession, member_id: uuid.UUID) -> dict | None:
@@ -23,10 +49,10 @@ async def _get_member_with_user(db: AsyncSession, member_id: uuid.UUID) -> dict 
             GroupMember.group_id,
             GroupMember.user_id,
             GroupMember.joined_at,
-            User.name.label("user_name"),
-            User.email.label("user_email"),
+            UserModel.name.label("user_name"),
+            UserModel.email.label("user_email"),
         )
-        .join(User, User.id == GroupMember.user_id)
+        .join(UserModel, UserModel.id == GroupMember.user_id)
         .where(GroupMember.id == member_id)
     )
     row = result.one_or_none()
@@ -38,7 +64,7 @@ async def _add_member_by_user_id(
 ) -> GroupMember:
     """Add a user to a group by their user id."""
     # Check user exists
-    user = await db.get(User, user_id)
+    user = await db.get(UserModel, user_id)
     if user is None:
         raise ValueError("User not found")
 
@@ -59,47 +85,57 @@ async def _add_member_by_user_id(
     return member
 
 
-@router.get("/list-members", response_model=list[MemberResponse])
+@router.get("", response_model=list[MemberResponse])
 async def get_members(
     group_id: uuid.UUID,
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get list of users in a group."""
+    """Get list of users in a group. User must be a member to view."""
+    await _verify_group_exists(db, group_id)
+    await _verify_user_in_group(db, group_id, current_user.id)
+
     result = await db.execute(
         select(
             GroupMember.id,
             GroupMember.group_id,
             GroupMember.user_id,
             GroupMember.joined_at,
-            User.name.label("user_name"),
-            User.email.label("user_email"),
+            UserModel.name.label("user_name"),
+            UserModel.email.label("user_email"),
         )
-        .join(User, User.id == GroupMember.user_id)
+        .join(UserModel, UserModel.id == GroupMember.user_id)
         .where(GroupMember.group_id == group_id)
         .order_by(GroupMember.joined_at)
     )
     return [MemberResponse(**row._asdict()) for row in result.all()]
 
 
-@router.get("/invite-code", response_model=InviteCodeResponse)
-async def get_group_invite_code(
+@router.get("/invite", response_model=InviteCodeResponse)
+async def get_invite_code(
     group_id: uuid.UUID,
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get the invite code for a group."""
+    """Get the invite code for a group. User must be a member."""
+    await _verify_group_exists(db, group_id)
+    await _verify_user_in_group(db, group_id, current_user.id)
+
     group = await db.get(Group, group_id)
-    if group is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
     return InviteCodeResponse(invite_code=group.invite_code)
 
 
-@router.post("/add-member", response_model=MemberResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=MemberResponse, status_code=status.HTTP_201_CREATED)
 async def add_member(
     group_id: uuid.UUID,
     body: AddMemberRequest,
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Add a user to a group by userId or email."""
+    """Add a user to a group by userId or email. Requires membership."""
+    await _verify_group_exists(db, group_id)
+    await _verify_user_in_group(db, group_id, current_user.id)
+
     if body.user_id is None and body.email is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -111,7 +147,7 @@ async def add_member(
             member = await _add_member_by_user_id(db, group_id, body.user_id)
         else:
             # Look up user by email first
-            result = await db.execute(select(User).where(User.email == body.email))
+            result = await db.execute(select(UserModel).where(UserModel.email == body.email))
             user = result.scalar_one_or_none()
             if user is None:
                 raise ValueError("No user found with that email")
@@ -124,13 +160,17 @@ async def add_member(
     return MemberResponse(**member_data)
 
 
-@router.delete("/remove-member/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_member(
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_member(
     group_id: uuid.UUID,
     user_id: uuid.UUID,
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove a user from the group."""
+    """Remove a user from the group. Must be a member to remove others."""
+    await _verify_group_exists(db, group_id)
+    await _verify_user_in_group(db, group_id, current_user.id)
+
     result = await db.execute(
         select(GroupMember).where(
             GroupMember.group_id == group_id,
@@ -139,7 +179,10 @@ async def delete_member(
     )
     member = result.scalar_one_or_none()
     if member is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is not a member of this group")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User is not a member of this group"
+        )
 
     await db.delete(member)
     await db.commit()
