@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
 from app.routers import auth, groups, members, expenses, debts
+from app.variables import MyVariables
 
 # Import models so they are registered with Base.metadata
 import app.models  # noqa: F401
@@ -19,19 +20,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Expense Splitter API",
-    description="A FastAPI backend for splitting expenses among groups of users.",
-    version="1.0.0",
+    title=MyVariables.app_name,
+    description=MyVariables.app_description,
+    version=MyVariables.app_version,
     lifespan=lifespan,
+    debug=MyVariables.debug,
 )
 
-# CORS – allow all origins during development
+# CORS configuration from environment variables
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=MyVariables.cors_origins,
+    allow_credentials=MyVariables.cors_credentials,
+    allow_methods=MyVariables.cors_methods,
+    allow_headers=MyVariables.cors_headers,
 )
 
 # Register routers
@@ -55,4 +57,9 @@ if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "app.main:app",
+        host=MyVariables.server_host,
+        port=MyVariables.server_port,
+        reload=MyVariables.server_reload,
+    )

@@ -8,8 +8,8 @@ from pydantic import BaseModel
 
 # ── Requests ──────────────────────────────────────────────────────────────────
 
-class ExpenseShareItem(BaseModel):
-    """A single share entry when creating an expense."""
+class ExpenseSplitItem(BaseModel):
+    """A single split entry when creating an expense."""
     debtor_id: uuid.UUID
     creditor_id: uuid.UUID
     amount_owed: Decimal
@@ -20,14 +20,14 @@ class ExpenseCreateRequest(BaseModel):
     description: str
     amount: Decimal
     payer_id: uuid.UUID
-    shares: list[ExpenseShareItem]
+    splits: list[ExpenseSplitItem]
     category: str | None = None
     date: datetime | None = None
 
 
 # ── Responses ─────────────────────────────────────────────────────────────────
 
-class ExpenseShareResponse(BaseModel):
+class ExpenseSplitResponse(BaseModel):
     id: uuid.UUID
     debtor_id: uuid.UUID
     creditor_id: uuid.UUID
@@ -45,5 +45,14 @@ class ExpenseResponse(BaseModel):
     category: str | None
     date: datetime
     created_at: datetime
-    shares: list[ExpenseShareResponse] = []
+    splits: list[ExpenseSplitResponse] = []
+
+
+class ExpenseListResponse(BaseModel):
+    """Paginated list of expenses."""
+    expenses: list[ExpenseResponse]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
 

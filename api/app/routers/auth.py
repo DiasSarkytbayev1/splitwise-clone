@@ -10,7 +10,9 @@ from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
     UserResponse,
+    AuthResponse,
 )
+from app.auth import create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -43,9 +45,9 @@ async def _maybe_join_group(db: AsyncSession, user_id, group_id) -> None:
         db.add(GroupMember(group_id=group_id, user_id=user_id))
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Register a new user account."""
+    """Register a new user account and return JWT access token."""
     # Check for duplicate email
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none() is not None:
@@ -68,12 +70,18 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(user)
 
-    return user
+    # Generate JWT token
+    access_token = create_access_token(user.id)
+
+    return AuthResponse(
+        access_token=access_token,
+        user=UserResponse.model_validate(user)
+    )
 
 
-@router.post("/login", response_model=UserResponse)
+@router.post("/login", response_model=AuthResponse)
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
-    """Log in with email and password."""
+    """Log in with email and password and return JWT access token."""
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
 
@@ -87,4 +95,15 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     await _maybe_join_group(db, user.id, body.invite_group_id)
     await db.commit()
 
-    return user
+    # Generate JWT token
+    access_token = create_access_token(user.id)
+
+    return AuthResponse(
+        access_token=access_token,
+        user=UserResponse.model_validate(user)
+    )
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(current_user: User = Depends(get_current_user)):
+    """Get the current authenticated user's profile."""
+    return UserResponse.model_validate(current_user)
