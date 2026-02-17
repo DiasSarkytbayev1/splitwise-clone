@@ -1,7 +1,7 @@
-from app.models.user import User
-from app.models.group import Group
-from app.models.group_member import GroupMember
-from app.database import Session
+from api.app.models.user import User
+from api.app.models.group import Group
+from api.app.models.group_member import GroupMember
+from api.app.database import Session
 
 
 def seed_members():

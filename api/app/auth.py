@@ -1,6 +1,7 @@
 """JWT authentication utilities."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
+import inspect
 from typing import Optional
 import uuid
 
@@ -10,9 +11,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.variables import MyVariables
-from app.database import AsyncSessionLocal
-from app.models.user import User
+from api.app.variables import MyVariables
+from api.app.database import AsyncSessionLocal
+from api.app.models.user import User
 
 # Security scheme for Swagger UI
 security = HTTPBearer()
@@ -28,11 +29,12 @@ def create_access_token(user_id: uuid.UUID) -> str:
     Returns:
         Encoded JWT token string
     """
-    expire = datetime.utcnow() + timedelta(minutes=MyVariables.jwt_access_token_expire_minutes)
+    now_utc = datetime.now(UTC)
+    expire = now_utc + timedelta(minutes=MyVariables.jwt_access_token_expire_minutes)
     to_encode = {
         "sub": str(user_id),
         "exp": expire,
-        "iat": datetime.utcnow(),
+        "iat": now_utc,
     }
     encoded_jwt = jwt.encode(
         to_encode,
@@ -102,7 +104,8 @@ async def get_current_user(
         raise credentials_exception
 
     # Fetch user from database
-    result = await db.execute(select(User).where(User.id == user_id))
+    execution = db.execute(select(User).where(User.id == user_id))
+    result = await execution if inspect.isawaitable(execution) else execution
     user = result.scalar_one_or_none()
 
     if user is None:

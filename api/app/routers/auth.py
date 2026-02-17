@@ -1,23 +1,31 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+import inspect
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
-from app.models.user import User
-from app.models.group_member import GroupMember
-from app.schemas.auth import (
+from api.app.dependencies import get_db
+from api.app.models.user import User
+from api.app.models.group_member import GroupMember
+from api.app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
     UserResponse,
     AuthResponse,
 )
-from app.auth import create_access_token, get_current_user
+from api.app.auth import create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 # Password hashing context using bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+async def _maybe_await(value):
+    """Support both async and sync SQLAlchemy sessions."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
 
 
 def hash_password(plain: str) -> str:
@@ -35,12 +43,12 @@ async def _maybe_join_group(db: AsyncSession, user_id, group_id) -> None:
     if group_id is None:
         return
     # Check if already a member
-    existing = await db.execute(
+    existing = await _maybe_await(db.execute(
         select(GroupMember).where(
             GroupMember.group_id == group_id,
             GroupMember.user_id == user_id,
         )
-    )
+    ))
     if existing.scalar_one_or_none() is None:
         db.add(GroupMember(group_id=group_id, user_id=user_id))
 
@@ -49,7 +57,7 @@ async def _maybe_join_group(db: AsyncSession, user_id, group_id) -> None:
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Register a new user account and return JWT access token."""
     # Check for duplicate email
-    result = await db.execute(select(User).where(User.email == body.email))
+    result = await _maybe_await(db.execute(select(User).where(User.email == body.email)))
     if result.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -62,13 +70,13 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         password_hash=hash_password(body.password),
     )
     db.add(user)
-    await db.flush()  # populate user.id
+    await _maybe_await(db.flush())  # populate user.id
 
     # Auto-join group if invite id provided
     await _maybe_join_group(db, user.id, body.invite_group_id)
 
-    await db.commit()
-    await db.refresh(user)
+    await _maybe_await(db.commit())
+    await _maybe_await(db.refresh(user))
 
     # Generate JWT token
     access_token = create_access_token(user.id)
@@ -82,7 +90,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
 @router.post("/login", response_model=AuthResponse)
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     """Log in with email and password and return JWT access token."""
-    result = await db.execute(select(User).where(User.email == body.email))
+    result = await _maybe_await(db.execute(select(User).where(User.email == body.email)))
     user = result.scalar_one_or_none()
 
     if user is None or not verify_password(body.password, user.password_hash):
@@ -93,7 +101,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     # Auto-join group if invite id provided
     await _maybe_join_group(db, user.id, body.invite_group_id)
-    await db.commit()
+    await _maybe_await(db.commit())
 
     # Generate JWT token
     access_token = create_access_token(user.id)

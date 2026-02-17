@@ -9,7 +9,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.database import Base
+from api.app.database import Base
 
 
 class ExpenseShare(Base):
