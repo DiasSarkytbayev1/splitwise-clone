@@ -4,12 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
-from app.auth import get_current_user
-from app.models.user import User
-from app.models.group import Group
-from app.models.group_member import GroupMember
-from app.schemas.group import GroupCreateRequest, GroupResponse
+from api.app.dependencies import get_db
+from api.app.auth import get_current_user
+from api.app.models.user import User
+from api.app.models.group import Group
+from api.app.models.group_member import GroupMember
+from api.app.schemas.group import GroupCreateRequest, GroupResponse
 
 router = APIRouter(prefix="/groups", tags=["Groups"])
 

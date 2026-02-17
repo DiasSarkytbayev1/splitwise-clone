@@ -11,12 +11,12 @@ from pathlib import Path
 # Ensure the project root is on sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.database import Base, sync_engine
-from seeds.seed_users import seed_users
-from seeds.seed_group import seed_group
-from seeds.seed_members import seed_members
-from seeds.seed_expenses import seed_expenses
-from seeds.seed_expense_shares import seed_expense_shares
+from api.app.database import Base, sync_engine
+from api.seeds.seed_users import seed_users
+from api.seeds.seed_group import seed_group
+from api.seeds.seed_members import seed_members
+from api.seeds.seed_expenses import seed_expenses
+from api.seeds.seed_expense_shares import seed_expense_shares
 
 # Import all models so Base.metadata knows about them
 import app.models  # noqa: F401

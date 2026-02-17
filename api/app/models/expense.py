@@ -6,10 +6,11 @@ from sqlalchemy import (
     Numeric,
     TIMESTAMP,
     ForeignKey,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.database import Base
+from api.app.database import Base
 
 
 class Expense(Base):
@@ -26,5 +27,5 @@ class Expense(Base):
     amount = Column(Numeric(12, 2), nullable=False)
     category = Column(String(100), nullable=True)
 
-    date = Column(TIMESTAMP(timezone=True), server_default="now()", nullable=False)
-    created_at = Column(TIMESTAMP(timezone=True), server_default="now()", nullable=False)
+    date = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)

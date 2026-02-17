@@ -7,14 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
-from app.auth import get_current_user
-from app.models.user import User
-from app.models.group import Group
-from app.models.group_member import GroupMember
-from app.models.expense import Expense
-from app.models.expense_share import ExpenseShare
-from app.schemas.expense import (
+from api.app.dependencies import get_db
+from api.app.auth import get_current_user
+from api.app.models.user import User
+from api.app.models.group import Group
+from api.app.models.group_member import GroupMember
+from api.app.models.expense import Expense
+from api.app.models.expense_share import ExpenseShare
+from api.app.schemas.expense import (
     ExpenseCreateRequest,
     ExpenseResponse,
     ExpenseListResponse,
