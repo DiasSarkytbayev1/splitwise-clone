@@ -207,3 +207,6 @@ marimo/_lsp/
 __marimo__/
 # PostgreSQL credentials file
 .postgres_credentials
+
+#MacOS
+.DS_Store
