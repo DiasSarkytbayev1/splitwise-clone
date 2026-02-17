@@ -1,11 +1,16 @@
 
 
 import os
+from pathlib import Path
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 from dotenv import load_dotenv
 
-# Load .env file only once
-load_dotenv()
+# Load .env files using stable paths (independent of current working directory).
+_CURRENT_FILE = Path(__file__).resolve()
+_API_DIR = _CURRENT_FILE.parents[1]
+_PROJECT_ROOT = _CURRENT_FILE.parents[2]
+load_dotenv(_PROJECT_ROOT / ".env")
+load_dotenv(_API_DIR / ".env", override=True)
 
 
 def _strip_query_params(url: str, params_to_strip: list[str]) -> str:
@@ -41,6 +46,10 @@ class MyVariables:
     # Database connection settings
     db_echo = os.getenv("DB_ECHO", "false").lower() == "true"
     db_ssl = os.getenv("DB_SSL", "true").lower() == "true"
+    _default_ssl_verify = (
+        "false" if os.getenv("ENVIRONMENT", "development").lower() == "development" else "true"
+    )
+    db_ssl_verify = os.getenv("DB_SSL_VERIFY", _default_ssl_verify).lower() == "true"
 
     # ────────────────────────────────────────────────────────────────────────────
     # JWT Authentication Configuration

@@ -7,10 +7,11 @@ from sqlalchemy import (
     String,
     TIMESTAMP,
     ForeignKey,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.database import Base
+from api.app.database import Base
 
 
 def _generate_invite_code(length: int = 8) -> str:
@@ -33,4 +34,4 @@ class Group(Base):
 
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
-    created_at = Column(TIMESTAMP(timezone=True), server_default="now()", nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)

@@ -1,9 +1,9 @@
 import datetime
 
-from app.models.user import User
-from app.models.group import Group
-from app.models.expense import Expense
-from app.database import Session
+from api.app.models.user import User
+from api.app.models.group import Group
+from api.app.models.expense import Expense
+from api.app.database import Session
 
 
 def seed_expenses():

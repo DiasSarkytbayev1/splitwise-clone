@@ -3,12 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import engine, Base
-from app.routers import auth, groups, members, expenses, debts
-from app.variables import MyVariables
+from api.app.database import engine, Base
+from api.app.routers import auth, groups, members, expenses, debts
+from api.app.variables import MyVariables
 
 # Import models so they are registered with Base.metadata
-import app.models  # noqa: F401
+import api.app.models  # noqa: F401
 
 
 @asynccontextmanager
