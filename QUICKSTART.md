@@ -69,7 +69,7 @@ DB_SSL=false
 
 ```bash
 cd api
-pip install -r requirements.txt
+pip-sync requirements.txt
 ```
 
 ### 6. Run Application

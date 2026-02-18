@@ -1,9 +1,11 @@
 # Splitwise Clone
 
+## I. Description
+
 Expense splitting application built with FastAPI and PostgreSQL.
 Software Engineering course project - Harbour Space University.
 
-## Quick Start
+## II. Dev setup instructions (step-by-step)
 
 ```bash
 # 1. Setup PostgreSQL (automated)
@@ -14,7 +16,7 @@ python scripts/test_db_connection.py
 
 # 3. Install and run
 cd api
-pip install -r requirements.txt
+pip-sync requirements.txt
 python -m app.main
 ```
 
@@ -23,6 +25,20 @@ python -m app.main
 Visit http://localhost:8000/docs
 
 📖 **See [QUICKSTART.md](QUICKSTART.md) for detailed instructions**
+
+## III. How to run tests
+
+## IV. How to run linters
+
+## V. How deployment works
+
+## VI. Environmental variables' descriptions
+
+Required:
+- `DATABASE_URL` - PostgreSQL connection string
+- `JWT_SECRET_KEY` - Secret for JWT tokens (generate with `openssl rand -hex 32`)
+
+Optional: See `.env.example` for all available options.
 
 ## Features
 
@@ -49,7 +65,8 @@ splitwise-clone/
 │   │   ├── routers/      # API endpoints
 │   │   ├── schemas/      # Request/response schemas
 │   │   └── main.py       # Application entry
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── requirements.in
 ├── domains/              # Business logic
 │   ├── expense/
 │   └── group/
@@ -78,14 +95,6 @@ splitwise-clone/
 - `GET /debts/{group_id}/settlements` - Get settlement plan
 
 Full API documentation: http://localhost:8000/docs
-
-## Environment Variables
-
-Required:
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET_KEY` - Secret for JWT tokens (generate with `openssl rand -hex 32`)
-
-Optional: See `.env.example` for all available options.
 
 ## Testing
 
