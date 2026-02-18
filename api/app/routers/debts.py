@@ -1,21 +1,23 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.app.dependencies import get_db
 from api.app.auth import get_current_user
-from api.app.models.user import User
-from api.app.models.group_member import GroupMember
+from api.app.dependencies import get_db
 from api.app.models.expense import Expense
 from api.app.models.expense_share import ExpenseShare
+from api.app.models.group_member import GroupMember
+from api.app.models.user import User
 from api.app.schemas.debt import DebtSummaryResponse, SettleResponse
 
 router = APIRouter(prefix="/groups/{group_id}/debts", tags=["Debts"])
 
 
-async def _verify_group_membership(db: AsyncSession, group_id: uuid.UUID, user_id: uuid.UUID) -> None:
+async def _verify_group_membership(
+    db: AsyncSession, group_id: uuid.UUID, user_id: uuid.UUID
+) -> None:
     """Verify that a user is a member of the group."""
     result = await db.execute(
         select(GroupMember).where(
@@ -25,8 +27,7 @@ async def _verify_group_membership(db: AsyncSession, group_id: uuid.UUID, user_i
     )
     if result.scalar_one_or_none() is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a member of this group"
+            status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this group"
         )
 
 
@@ -85,14 +86,12 @@ async def settle_debt(
 
     if debt is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Debt not found in this group"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Debt not found in this group"
         )
 
     if debt.status == "settled":
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Debt is already settled"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Debt is already settled"
         )
 
     # Mark as settled
@@ -100,6 +99,5 @@ async def settle_debt(
     await db.commit()
 
     return SettleResponse(
-        settled_count=1,
-        message=f"Debt of {debt.amount_owed} settled successfully"
+        settled_count=1, message=f"Debt of {debt.amount_owed} settled successfully"
     )

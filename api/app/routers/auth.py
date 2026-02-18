@@ -1,19 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status
 import inspect
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.app.auth import create_access_token, get_current_user
 from api.app.dependencies import get_db
-from api.app.models.user import User
 from api.app.models.group_member import GroupMember
+from api.app.models.user import User
 from api.app.schemas.auth import (
+    AuthResponse,
     LoginRequest,
     RegisterRequest,
     UserResponse,
-    AuthResponse,
 )
-from api.app.auth import create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -43,12 +44,14 @@ async def _maybe_join_group(db: AsyncSession, user_id, group_id) -> None:
     if group_id is None:
         return
     # Check if already a member
-    existing = await _maybe_await(db.execute(
-        select(GroupMember).where(
-            GroupMember.group_id == group_id,
-            GroupMember.user_id == user_id,
+    existing = await _maybe_await(
+        db.execute(
+            select(GroupMember).where(
+                GroupMember.group_id == group_id,
+                GroupMember.user_id == user_id,
+            )
         )
-    ))
+    )
     if existing.scalar_one_or_none() is None:
         db.add(GroupMember(group_id=group_id, user_id=user_id))
 
@@ -81,10 +84,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     # Generate JWT token
     access_token = create_access_token(user.id)
 
-    return AuthResponse(
-        access_token=access_token,
-        user=UserResponse.model_validate(user)
-    )
+    return AuthResponse(access_token=access_token, user=UserResponse.model_validate(user))
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -106,10 +106,8 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     # Generate JWT token
     access_token = create_access_token(user.id)
 
-    return AuthResponse(
-        access_token=access_token,
-        user=UserResponse.model_validate(user)
-    )
+    return AuthResponse(access_token=access_token, user=UserResponse.model_validate(user))
+
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):

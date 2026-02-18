@@ -1,32 +1,22 @@
 from decimal import Decimal
 
-from api.app.models.user import User
+from api.app.database import Session
 from api.app.models.expense import Expense
 from api.app.models.expense_share import ExpenseShare
-from api.app.database import Session
+from api.app.models.user import User
 
 
 def seed_expense_shares():
     session = Session()
 
-    users = (
-        session.query(User)
-        .order_by(User.created_at.asc())
-        .limit(3)
-        .all()
-    )
+    users = session.query(User).order_by(User.created_at.asc()).limit(3).all()
 
     if len(users) < 3:
         print("Need at least 3 users seeded first.")
         session.close()
         return
 
-    expenses = (
-        session.query(Expense)
-        .order_by(Expense.date.asc())
-        .limit(2)
-        .all()
-    )
+    expenses = session.query(Expense).order_by(Expense.date.asc()).limit(2).all()
 
     if len(expenses) < 2:
         print("Need at least 2 expenses seeded first.")
@@ -37,8 +27,8 @@ def seed_expense_shares():
     bob = users[1]
     charlie = users[2]
 
-    dinner = expenses[0]    # Alice paid $90
-    groceries = expenses[1] # Bob paid $60
+    dinner = expenses[0]  # Alice paid $90
+    groceries = expenses[1]  # Bob paid $60
 
     # ── Dinner ($90 paid by Alice, split equally 3 ways = $30 each) ──────────
     # Bob owes Alice $30

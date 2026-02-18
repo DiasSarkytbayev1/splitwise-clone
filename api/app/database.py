@@ -1,7 +1,8 @@
+import ssl
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
-import ssl
 
 from api.app.variables import MyVariables
 
@@ -48,4 +49,5 @@ Session = sessionmaker(bind=sync_engine)
 
 class Base(DeclarativeBase):
     """Base class for all ORM models."""
+
     pass

@@ -1,8 +1,9 @@
 import uuid
 
 from domain import Group, User
-from domains.group.repository import GroupRepository
+
 from domains.expense.service import ExpenseService
+from domains.group.repository import GroupRepository
 
 
 class GroupService:

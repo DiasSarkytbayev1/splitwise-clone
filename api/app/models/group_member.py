@@ -1,8 +1,8 @@
 import uuid
 
 from sqlalchemy import (
-    Column,
     TIMESTAMP,
+    Column,
     ForeignKey,
     UniqueConstraint,
     text,
@@ -17,11 +17,13 @@ class GroupMember(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    group_id = Column(UUID(as_uuid=True), ForeignKey("groups.id", ondelete="CASCADE"), nullable=False)
+    group_id = Column(
+        UUID(as_uuid=True), ForeignKey("groups.id", ondelete="CASCADE"), nullable=False
+    )
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
-    joined_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("group_id", "user_id", name="uq_group_user"),
+    joined_at = Column(
+        TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False
     )
+
+    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_user"),)

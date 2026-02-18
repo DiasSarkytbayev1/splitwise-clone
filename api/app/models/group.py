@@ -1,12 +1,12 @@
-import uuid
-import string
 import secrets
+import string
+import uuid
 
 from sqlalchemy import (
-    Column,
-    String,
     TIMESTAMP,
+    Column,
     ForeignKey,
+    String,
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -30,8 +30,12 @@ class Group(Base):
     currency_code = Column(String(10), nullable=False, default="USD")
     cover_image = Column(String(500), nullable=True)
 
-    invite_code = Column(String(20), unique=True, nullable=False, default=_generate_invite_code, index=True)
+    invite_code = Column(
+        String(20), unique=True, nullable=False, default=_generate_invite_code, index=True
+    )
 
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
-    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
+    created_at = Column(
+        TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False
+    )

@@ -6,6 +6,7 @@ Usage:  python test.py
 """
 
 import json
+
 import requests
 
 BASE = "http://127.0.0.1:8000"
@@ -27,6 +28,7 @@ def pretty(label, resp):
 
 # ── 1. Health Check ──────────────────────────────────────────────────────────
 
+
 def test_health():
     resp = requests.get(f"{BASE}/", timeout=TIMEOUT)
     pretty("Health Check", resp)
@@ -35,32 +37,46 @@ def test_health():
 
 # ── 2. Auth ──────────────────────────────────────────────────────────────────
 
+
 def test_register(name, email, password):
-    resp = requests.post(f"{BASE}/auth/register", json={
-        "name": name,
-        "email": email,
-        "password": password,
-    }, timeout=TIMEOUT)
+    resp = requests.post(
+        f"{BASE}/auth/register",
+        json={
+            "name": name,
+            "email": email,
+            "password": password,
+        },
+        timeout=TIMEOUT,
+    )
     pretty(f"Register ({email})", resp)
     return resp.json()
 
 
 def test_login(email, password):
-    resp = requests.post(f"{BASE}/auth/login", json={
-        "email": email,
-        "password": password,
-    }, timeout=TIMEOUT)
+    resp = requests.post(
+        f"{BASE}/auth/login",
+        json={
+            "email": email,
+            "password": password,
+        },
+        timeout=TIMEOUT,
+    )
     pretty(f"Login ({email})", resp)
     return resp.json()
 
 
 # ── 3. Groups ────────────────────────────────────────────────────────────────
 
+
 def test_create_group(user_id, name):
-    resp = requests.post(f"{BASE}/groups", json={
-        "name": name,
-        "user_id": user_id,
-    }, timeout=TIMEOUT)
+    resp = requests.post(
+        f"{BASE}/groups",
+        json={
+            "name": name,
+            "user_id": user_id,
+        },
+        timeout=TIMEOUT,
+    )
     pretty(f"Create Group ({name})", resp)
     return resp.json()
 
@@ -85,6 +101,7 @@ def test_get_group_by_code(code):
 
 # ── 4. Members ───────────────────────────────────────────────────────────────
 
+
 def test_get_members(group_id):
     resp = requests.get(f"{BASE}/groups/{group_id}/members", timeout=TIMEOUT)
     pretty(f"List Members (group={group_id})", resp)
@@ -98,9 +115,13 @@ def test_get_invite_code(group_id):
 
 
 def test_add_member(group_id, user_id):
-    resp = requests.post(f"{BASE}/groups/{group_id}/members", json={
-        "user_id": user_id,
-    }, timeout=TIMEOUT)
+    resp = requests.post(
+        f"{BASE}/groups/{group_id}/members",
+        json={
+            "user_id": user_id,
+        },
+        timeout=TIMEOUT,
+    )
     pretty(f"Add Member (user={user_id[:8]}...)", resp)
     return resp.json()
 
@@ -113,6 +134,7 @@ def test_remove_member(group_id, user_id):
 
 # ── 5. Expenses ──────────────────────────────────────────────────────────────
 
+
 def test_list_expenses(group_id):
     resp = requests.get(f"{BASE}/groups/{group_id}/expenses", timeout=TIMEOUT)
     pretty(f"List Expenses (group={group_id})", resp)
@@ -120,13 +142,17 @@ def test_list_expenses(group_id):
 
 
 def test_create_expense(group_id, payer_id, description, amount, shares, category=None):
-    resp = requests.post(f"{BASE}/groups/{group_id}/expenses/create", json={
-        "description": description,
-        "amount": str(amount),
-        "payer_id": payer_id,
-        "shares": shares,
-        "category": category,
-    }, timeout=TIMEOUT)
+    resp = requests.post(
+        f"{BASE}/groups/{group_id}/expenses/create",
+        json={
+            "description": description,
+            "amount": str(amount),
+            "payer_id": payer_id,
+            "shares": shares,
+            "category": category,
+        },
+        timeout=TIMEOUT,
+    )
     pretty(f"Create Expense ({description})", resp)
     return resp.json()
 
@@ -139,6 +165,7 @@ def test_get_expense(expense_id):
 
 # ── 6. Debts ─────────────────────────────────────────────────────────────────
 
+
 def test_list_debts(group_id):
     resp = requests.get(f"{BASE}/groups/{group_id}/debts", timeout=TIMEOUT)
     pretty(f"List Debts (group={group_id})", resp)
@@ -146,10 +173,14 @@ def test_list_debts(group_id):
 
 
 def test_settle_debt(group_id, debtor_id, creditor_id):
-    resp = requests.post(f"{BASE}/groups/{group_id}/debts/settle", json={
-        "debtor_id": debtor_id,
-        "creditor_id": creditor_id,
-    }, timeout=TIMEOUT)
+    resp = requests.post(
+        f"{BASE}/groups/{group_id}/debts/settle",
+        json={
+            "debtor_id": debtor_id,
+            "creditor_id": creditor_id,
+        },
+        timeout=TIMEOUT,
+    )
     pretty(f"Settle Debt ({debtor_id[:8]}... -> {creditor_id[:8]}...)", resp)
     return resp.json()
 

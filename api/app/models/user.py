@@ -1,12 +1,12 @@
+import uuid
+
 from sqlalchemy import (
+    TIMESTAMP,
     Column,
     String,
-    TIMESTAMP,
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID
-
-import uuid
 
 from api.app.database import Base
 
@@ -20,4 +20,6 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
 
-    created_at = Column(TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
+    created_at = Column(
+        TIMESTAMP(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False
+    )

@@ -10,9 +10,8 @@ from api.app.auth import get_db_for_auth
 from api.app.database import Base
 from api.app.dependencies import get_db
 from api.app.main import app
+
 test_client = TestClient(app)
-
-
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -97,7 +96,9 @@ def unique_email():
 
 @pytest.fixture
 def register_user(client, unique_email):
-    def _register_user(name: str = "Test User", email: str | None = None, password: str = "password123"):
+    def _register_user(
+        name: str = "Test User", email: str | None = None, password: str = "password123"
+    ):
         payload = {
             "name": name,
             "email": email or unique_email("user"),
