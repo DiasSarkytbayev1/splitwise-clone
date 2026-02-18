@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+
 from pydantic import BaseModel
 
-
 # ── Requests ──────────────────────────────────────────────────────────────────
+
 
 class GroupCreateRequest(BaseModel):
     name: str
@@ -15,6 +16,7 @@ class GroupCreateRequest(BaseModel):
 
 
 # ── Responses ─────────────────────────────────────────────────────────────────
+
 
 class GroupResponse(BaseModel):
     id: uuid.UUID

@@ -1,4 +1,3 @@
-from typing import Set, List
 from dataclasses import dataclass, field
 
 
@@ -16,7 +15,7 @@ class Expense:
     group_id: str
     amount: float
     payer: User
-    debtors: Set[User]
+    debtors: set[User]
 
 
 @dataclass
@@ -24,7 +23,7 @@ class Group:
     id: str
     name: str
     currency: str
-    members: Set[User] = field(default_factory=set)
+    members: set[User] = field(default_factory=set)
 
 
 @dataclass(frozen=True)
@@ -37,4 +36,4 @@ class Settlement:
 @dataclass
 class SettlementPlan:
     group_id: str
-    settlements: List[Settlement] = field(default_factory=list)
+    settlements: list[Settlement] = field(default_factory=list)

@@ -26,7 +26,9 @@ def test_register_duplicate_email_returns_409(client, unique_email):
 
 def test_login_success_returns_token(client, unique_email):
     email = unique_email("login")
-    client.post("/auth/register", json={"name": "Login User", "email": email, "password": "password123"})
+    client.post(
+        "/auth/register", json={"name": "Login User", "email": email, "password": "password123"}
+    )
     response = client.post("/auth/login", json={"email": email, "password": "password123"})
 
     assert response.status_code == 200
@@ -38,7 +40,9 @@ def test_login_success_returns_token(client, unique_email):
 
 def test_login_invalid_password_returns_401(client, unique_email):
     email = unique_email("wrongpass")
-    client.post("/auth/register", json={"name": "Wrong Pass", "email": email, "password": "password123"})
+    client.post(
+        "/auth/register", json={"name": "Wrong Pass", "email": email, "password": "password123"}
+    )
     response = client.post("/auth/login", json={"email": email, "password": "incorrect"})
 
     assert response.status_code == 401

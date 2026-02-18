@@ -1,8 +1,7 @@
-
-
 import os
 from pathlib import Path
-from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
 from dotenv import load_dotenv
 
 # Load .env files using stable paths (independent of current working directory).
@@ -25,6 +24,7 @@ def _strip_query_params(url: str, params_to_strip: list[str]) -> str:
 
 # Define all your environment variables in one place
 
+
 class MyVariables:
     # ────────────────────────────────────────────────────────────────────────────
     # Database Configuration
@@ -34,14 +34,19 @@ class MyVariables:
     # asyncpg driver for the FastAPI server
     # asyncpg doesn't understand sslmode/channel_binding as URL params,
     # so we strip them and pass ssl=True via connect_args in database.py
-    async_database_url = _strip_query_params(
-        database_url.replace("postgresql://", "postgresql+asyncpg://", 1),
-        ["sslmode", "channel_binding"],
-    ) if database_url else None
+    async_database_url = (
+        _strip_query_params(
+            database_url.replace("postgresql://", "postgresql+asyncpg://", 1),
+            ["sslmode", "channel_binding"],
+        )
+        if database_url
+        else None
+    )
 
     # psycopg2 driver for seeds/scripts (keeps sslmode in the URL)
-    sync_database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1) \
-        if database_url else None
+    sync_database_url = (
+        database_url.replace("postgresql://", "postgresql+psycopg2://", 1) if database_url else None
+    )
 
     # Database connection settings
     db_echo = os.getenv("DB_ECHO", "false").lower() == "true"
@@ -56,14 +61,18 @@ class MyVariables:
     # ────────────────────────────────────────────────────────────────────────────
     jwt_secret_key = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
     jwt_algorithm = os.getenv("JWT_ALGORITHM", "HS256")
-    jwt_access_token_expire_minutes = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+    jwt_access_token_expire_minutes = int(
+        os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "1440")
+    )  # 24 hours
 
     # ────────────────────────────────────────────────────────────────────────────
     # Application Configuration
     # ────────────────────────────────────────────────────────────────────────────
     app_name = os.getenv("APP_NAME", "Expense Splitter API")
     app_version = os.getenv("APP_VERSION", "1.0.0")
-    app_description = os.getenv("APP_DESCRIPTION", "A FastAPI backend for splitting expenses among groups of users.")
+    app_description = os.getenv(
+        "APP_DESCRIPTION", "A FastAPI backend for splitting expenses among groups of users."
+    )
 
     # Environment (development, staging, production)
     environment = os.getenv("ENVIRONMENT", "development")
@@ -84,4 +93,3 @@ class MyVariables:
     cors_credentials = os.getenv("CORS_CREDENTIALS", "true").lower() == "true"
     cors_methods = os.getenv("CORS_METHODS", "*").split(",")
     cors_headers = os.getenv("CORS_HEADERS", "*").split(",")
-

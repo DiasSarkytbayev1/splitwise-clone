@@ -1,0 +1,73 @@
+# Human-readable name shown in the GitHub Actions UI.
+name: CI/CD
+
+# Define when this workflow runs.
+on:
+  # Run on every pull request to enforce quality gates before merge.
+  pull_request:
+  # Also run on direct pushes to main (optional safety net).
+  push:
+    branches:
+      - main
+
+jobs:
+  quality:
+    # GitHub-hosted Linux runner.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download repository code into the runner.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install Python and enable pip caching for faster builds.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: api/requirements.txt
+
+      # Install project dependencies (includes ruff, mypy, pytest, pytest-cov, alembic).
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api/requirements.txt
+
+      # RUN TECHNICAL CRITERIA FOR QUALITY CHECKS
+
+      # Static lint checks (style issues, import order, common bugs).
+      - name: Ruff
+        run: ruff check .
+
+      # Static type checks for typed Python code.
+      - name: Mypy
+        run: mypy domains
+
+      # Run tests with coverage and fail if below configured threshold.
+      - name: Pytest with coverage threshold
+        run: pytest --cov=api.app --cov-report=term-missing --cov-fail-under=90
+
+      # Verify migration state (no missing migrations) for Django/Alembic projects.
+      - name: Migration check
+        run: |
+          if [ -f "manage.py" ]; then
+            python manage.py makemigrations --check --dry-run
+          elif [ -f "api/manage.py" ]; then
+            python api/manage.py makemigrations --check --dry-run
+          elif [ -f "alembic.ini" ]; then
+            if [ -n "${DATABASE_URL:-}" ]; then
+              alembic check
+            else
+              echo "DATABASE_URL is not set. Skipping alembic check."
+            fi
+          elif [ -f "api/alembic.ini" ]; then
+            if [ -n "${DATABASE_URL:-}" ]; then
+              cd api
+              alembic check
+            else
+              echo "DATABASE_URL is not set. Skipping alembic check."
+            fi
+          else
+            echo "No migration tool configuration found. Skipping migration check."
+          fi

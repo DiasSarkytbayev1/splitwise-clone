@@ -1,6 +1,6 @@
 import pytest
-
 from domain import User
+
 from domains.expense.repository import ExpenseRepository
 from domains.expense.service import ExpenseService
 from domains.group.repository import GroupRepository
@@ -20,7 +20,6 @@ def bob():
 @pytest.fixture
 def charlie():
     return User(id="3", name="Charlie Kirk", email="charlie@kirk.com", password="pass")
-
 
 
 @pytest.fixture
@@ -45,7 +44,6 @@ def group_with_three(group_with_two, charlie):
     group, expense_service, group_service = group_with_two
     group_service.invite_to_group(group.id, charlie)
     return group, expense_service, group_service
-
 
 
 def test_split_between_two(group_with_two, alice, bob):
@@ -75,9 +73,8 @@ def test_payer_in_debtors_does_not_owe_self(group_with_two, alice, bob):
     expense_service.create_expense(group.id, 100, payer=alice, debtors={alice, bob})
     debts = expense_service.calculate_debts(group.id)
 
-    for (debtor, payer) in debts:
+    for debtor, payer in debts:
         assert debtor != payer
-
 
 
 def test_netting_mutual_debts(group_with_two, alice, bob):
@@ -89,7 +86,6 @@ def test_netting_mutual_debts(group_with_two, alice, bob):
     debts = expense_service.calculate_debts(group.id)
     assert debts[(alice, bob)] == 10.0
     assert (bob, alice) not in debts
-
 
 
 def test_settlement_plan_three_people(group_with_three, alice, bob, charlie):
@@ -104,7 +100,6 @@ def test_settlement_plan_three_people(group_with_three, alice, bob, charlie):
     assert all(payer == alice for _, payer, _ in settlements)
 
 
-
 def test_settle_up_clears_debt(group_with_two, alice, bob):
     group, expense_service, _ = group_with_two
 
@@ -115,18 +110,18 @@ def test_settle_up_clears_debt(group_with_two, alice, bob):
     assert len(debts) == 0
 
 
-
 def test_drop_out_from_expense(group_with_three, alice, bob, charlie):
     group, expense_service, _ = group_with_three
 
-    expense = expense_service.create_expense(group.id, 90, payer=alice, debtors={alice, bob, charlie})
+    expense = expense_service.create_expense(
+        group.id, 90, payer=alice, debtors={alice, bob, charlie}
+    )
     expense_service.drop_out_from_expense(expense.id, charlie)
 
     debts = expense_service.calculate_debts(group.id)
 
     assert debts[(bob, alice)] == 45.0
     assert (charlie, alice) not in debts
-
 
 
 def test_cannot_leave_group_with_debts(group_with_two, alice, bob):

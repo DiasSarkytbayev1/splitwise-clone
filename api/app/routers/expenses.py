@@ -1,29 +1,30 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.app.dependencies import get_db
 from api.app.auth import get_current_user
-from api.app.models.user import User
-from api.app.models.group import Group
-from api.app.models.group_member import GroupMember
+from api.app.dependencies import get_db
 from api.app.models.expense import Expense
 from api.app.models.expense_share import ExpenseShare
+from api.app.models.group_member import GroupMember
+from api.app.models.user import User
 from api.app.schemas.expense import (
     ExpenseCreateRequest,
-    ExpenseResponse,
     ExpenseListResponse,
+    ExpenseResponse,
 )
 
 router = APIRouter(tags=["Expenses"])
 
 
-async def _verify_group_membership(db: AsyncSession, group_id: uuid.UUID, user_id: uuid.UUID) -> None:
+async def _verify_group_membership(
+    db: AsyncSession, group_id: uuid.UUID, user_id: uuid.UUID
+) -> None:
     """Verify that a user is a member of the group."""
     result = await db.execute(
         select(GroupMember).where(
@@ -33,8 +34,7 @@ async def _verify_group_membership(db: AsyncSession, group_id: uuid.UUID, user_i
     )
     if result.scalar_one_or_none() is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a member of this group"
+            status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this group"
         )
 
 
@@ -56,31 +56,34 @@ async def _attach_shares(db: AsyncSession, expenses: list[Expense]) -> list[dict
 
     result = []
     for e in expenses:
-        result.append({
-            "id": e.id,
-            "group_id": e.group_id,
-            "payer_id": e.payer_id,
-            "description": e.description,
-            "amount": e.amount,
-            "category": e.category,
-            "date": e.date,
-            "created_at": e.created_at,
-            "splits": [
-                {
-                    "id": s.id,
-                    "debtor_id": s.debtor_id,
-                    "creditor_id": s.creditor_id,
-                    "amount_owed": s.amount_owed,
-                    "percentage": s.percentage,
-                    "status": s.status,
-                }
-                for s in shares_by_expense.get(e.id, [])
-            ],
-        })
+        result.append(
+            {
+                "id": e.id,
+                "group_id": e.group_id,
+                "payer_id": e.payer_id,
+                "description": e.description,
+                "amount": e.amount,
+                "category": e.category,
+                "date": e.date,
+                "created_at": e.created_at,
+                "splits": [
+                    {
+                        "id": s.id,
+                        "debtor_id": s.debtor_id,
+                        "creditor_id": s.creditor_id,
+                        "amount_owed": s.amount_owed,
+                        "percentage": s.percentage,
+                        "status": s.status,
+                    }
+                    for s in shares_by_expense.get(e.id, [])
+                ],
+            }
+        )
     return result
 
 
 # ── Group-scoped expense routes ──────────────────────────────────────────────
+
 
 @router.get("/groups/{group_id}/expenses", response_model=ExpenseListResponse)
 async def list_expenses(
@@ -123,7 +126,11 @@ async def list_expenses(
     )
 
 
-@router.post("/groups/{group_id}/expenses", response_model=ExpenseResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/groups/{group_id}/expenses",
+    response_model=ExpenseResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_expense(
     group_id: uuid.UUID,
     body: ExpenseCreateRequest,
@@ -140,7 +147,7 @@ async def create_expense(
         description=body.description,
         amount=body.amount,
         category=body.category,
-        date=body.date or datetime.now(timezone.utc),
+        date=body.date or datetime.now(UTC),
     )
     db.add(expense)
     await db.flush()  # populate expense.id
@@ -167,6 +174,7 @@ async def create_expense(
 
 # ── Single expense route (not group-scoped) ──────────────────────────────────
 
+
 @router.get("/expenses/{id}", response_model=ExpenseResponse)
 async def get_expense(
     id: uuid.UUID,
@@ -174,15 +182,10 @@ async def get_expense(
     db: AsyncSession = Depends(get_db),
 ):
     """Get details of a single expense."""
-    result = await db.execute(
-        select(Expense).where(Expense.id == id)
-    )
+    result = await db.execute(select(Expense).where(Expense.id == id))
     expense = result.scalar_one_or_none()
     if expense is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Expense not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
 
     # Verify user is a member of the group
     await _verify_group_membership(db, expense.group_id, current_user.id)

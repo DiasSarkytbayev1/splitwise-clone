@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.app.dependencies import get_db
 from api.app.auth import get_current_user
+from api.app.dependencies import get_db
 from api.app.models.group import Group
 from api.app.models.group_member import GroupMember
 from api.app.models.user import User as UserModel
@@ -20,10 +20,7 @@ async def _verify_group_exists(db: AsyncSession, group_id: uuid.UUID) -> None:
     """Verify that a group exists, raise 404 if not."""
     group = await db.get(Group, group_id)
     if group is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
 
 async def _verify_user_in_group(db: AsyncSession, group_id: uuid.UUID, user_id: uuid.UUID) -> None:
@@ -36,8 +33,7 @@ async def _verify_user_in_group(db: AsyncSession, group_id: uuid.UUID, user_id: 
     )
     if result.scalar_one_or_none() is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not a member of this group"
+            status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this group"
         )
 
 
@@ -153,7 +149,7 @@ async def add_member(
                 raise ValueError("No user found with that email")
             member = await _add_member_by_user_id(db, group_id, user.id)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
     # Fetch the member with user info via JOIN for the response
     member_data = await _get_member_with_user(db, member.id)
@@ -180,8 +176,7 @@ async def remove_member(
     member = result.scalar_one_or_none()
     if member is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User is not a member of this group"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User is not a member of this group"
         )
 
     await db.delete(member)

@@ -1,7 +1,7 @@
 import uuid
-from typing import Dict, List, Optional, Set, Tuple
 
-from domain import User, Expense
+from domain import Expense, Group, User
+
 from domains.expense.repository import ExpenseRepository
 from domains.group.repository import GroupRepository
 
@@ -16,7 +16,7 @@ class ExpenseService:
         group_id: str,
         amount: float,
         payer: User,
-        debtors: Optional[Set[User]] = None,
+        debtors: set[User] | None = None,
     ) -> Expense:
         group = self._get_group_or_raise(group_id)
 
@@ -39,19 +39,17 @@ class ExpenseService:
         self._expense_repo.save(expense)
         return expense
 
-    def calculate_debts(self, group_id: str) -> Dict[Tuple[User, User], float]:
+    def calculate_debts(self, group_id: str) -> dict[tuple[User, User], float]:
         self._get_group_or_raise(group_id)
         expenses = self._expense_repo.find_by_group_id(group_id)
         return self._calculate_debt_matrix(expenses)
 
-    def get_settlement_plan(self, group_id: str) -> List[Tuple[User, User, float]]:
+    def get_settlement_plan(self, group_id: str) -> list[tuple[User, User, float]]:
         self._get_group_or_raise(group_id)
         expenses = self._expense_repo.find_by_group_id(group_id)
         return self._get_settlements(expenses)
 
-    def settle_up(
-        self, group_id: str, payer: User, payee: User, amount: float
-    ) -> Expense:
+    def settle_up(self, group_id: str, payer: User, payee: User, amount: float) -> Expense:
         self._get_group_or_raise(group_id)
         expenses = self._expense_repo.find_by_group_id(group_id)
         debt_matrix = self._calculate_debt_matrix(expenses)
@@ -62,9 +60,7 @@ class ExpenseService:
             raise ValueError(f"'{payer.name}' does not owe '{payee.name}' anything.")
 
         if amount > current_debt + 0.005:
-            raise ValueError(
-                f"Settlement amount {amount} exceeds debt of {current_debt}."
-            )
+            raise ValueError(f"Settlement amount {amount} exceeds debt of {current_debt}.")
 
         settlement = Expense(
             id=str(uuid.uuid4()),
@@ -87,7 +83,7 @@ class ExpenseService:
         self._expense_repo.save(expense)
         return expense
 
-    def _get_group_or_raise(self, group_id: str):
+    def _get_group_or_raise(self, group_id: str) -> Group:
         group = self._group_repo.find_by_id(group_id)
         if group is None:
             raise ValueError(f"Group with id '{group_id}' not found.")
@@ -95,9 +91,9 @@ class ExpenseService:
 
     @staticmethod
     def _calculate_debt_matrix(
-        expenses: List[Expense],
-    ) -> Dict[Tuple[User, User], float]:
-        raw_debts: Dict[Tuple[User, User], float] = {}
+        expenses: list[Expense],
+    ) -> dict[tuple[User, User], float]:
+        raw_debts: dict[tuple[User, User], float] = {}
 
         for expense in expenses:
             share = expense.amount / len(expense.debtors)
@@ -107,7 +103,7 @@ class ExpenseService:
                 key = (debtor, expense.payer)
                 raw_debts[key] = raw_debts.get(key, 0.0) + share
 
-        netted: Dict[Tuple[User, User], float] = {}
+        netted: dict[tuple[User, User], float] = {}
         processed: set = set()
 
         for (debtor, creditor), amount in raw_debts.items():
@@ -127,21 +123,21 @@ class ExpenseService:
         return netted
 
     @staticmethod
-    def _get_settlements(expenses: List[Expense]) -> List[Tuple[User, User, float]]:
+    def _get_settlements(expenses: list[Expense]) -> list[tuple[User, User, float]]:
         debt_matrix = ExpenseService._calculate_debt_matrix(expenses)
-        balances: Dict[User, float] = {}
+        balances: dict[User, float] = {}
 
         for (debtor, creditor), amount in debt_matrix.items():
             balances[debtor] = balances.get(debtor, 0.0) - amount
             balances[creditor] = balances.get(creditor, 0.0) + amount
 
-        debtors_list = []
-        creditors_list = []
+        debtors_list: list[tuple[User, float]] = []
+        creditors_list: list[tuple[User, float]] = []
         for user, balance in balances.items():
             if balance < -0.005:
-                debtors_list.append([user, -balance])
+                debtors_list.append((user, -balance))
             elif balance > 0.005:
-                creditors_list.append([user, balance])
+                creditors_list.append((user, balance))
 
         debtors_list.sort(key=lambda x: x[1], reverse=True)
         creditors_list.sort(key=lambda x: x[1], reverse=True)
@@ -156,8 +152,8 @@ class ExpenseService:
             if transfer > 0:
                 settlements.append((debtor, creditor, transfer))
 
-            debtors_list[i][1] = round(debt_amount - transfer, 2)
-            creditors_list[j][1] = round(credit_amount - transfer, 2)
+            debtors_list[i] = (debtor, round(debt_amount - transfer, 2))
+            creditors_list[j] = (creditor, round(credit_amount - transfer, 2))
 
             if debtors_list[i][1] < 0.005:
                 i += 1

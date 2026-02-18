@@ -96,9 +96,50 @@ pytest tests/ -v
 # Run specific test file
 pytest tests/test_auth.py -v
 
-# With coverage
-pytest tests/ --cov=app
+# With coverage + threshold
+pytest tests/ --cov=api.app --cov-report=term-missing --cov-fail-under=90
 ```
+
+## Code Quality
+
+```bash
+# Lint
+ruff check .
+
+# Format check
+ruff format --check .
+
+# Type checks
+mypy domains
+
+# Full test run with coverage threshold
+pytest --cov=api.app --cov-report=term-missing --cov-fail-under=90
+
+# Migration drift check (requires DATABASE_URL in environment)
+cd api && alembic check
+```
+
+## Pre-commit Setup & Local Workflow
+
+```bash
+# 1) Install dependencies
+cd api
+pip install -r requirements.txt
+cd ..
+
+# 2) Install git hooks
+pre-commit install
+
+# 3) Run all hooks on all files (first-time baseline)
+pre-commit run --all-files
+```
+
+Recommended local workflow before push:
+
+1. Run `pre-commit run --all-files`
+2. Fix issues from ruff/mypy/pytest if any
+3. Re-run hooks until clean
+4. Push and open a pull request
 
 ## Documentation
 

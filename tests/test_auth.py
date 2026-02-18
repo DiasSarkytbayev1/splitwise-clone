@@ -6,9 +6,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from api.app.auth import get_db_for_auth
 from api.app.database import Base
 from api.app.dependencies import get_db
-from api.app.auth import get_db_for_auth
 from api.app.main import app
 
 # Create in-memory SQLite database for testing

@@ -9,21 +9,22 @@ Usage:
     python3 scripts/test_db_connection.py
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 
 try:
-    from dotenv import load_dotenv
     import asyncio
+
+    from dotenv import load_dotenv
     from sqlalchemy import text
     from sqlalchemy.ext.asyncio import create_async_engine
 except ImportError as e:
     print(f"❌ Missing dependencies: {e}")
-    print(f"💡 Install them with: cd api && pip install -r requirements.txt")
+    print("💡 Install them with: cd api && pip install -r requirements.txt")
     sys.exit(1)
 
 # Color codes
@@ -79,6 +80,7 @@ async def test_connection():
     # Parse and display connection info (mask password)
     try:
         from urllib.parse import urlparse
+
         parsed = urlparse(database_url)
         masked_password = parsed.password[:3] + "***" if parsed.password else "None"
         print_info(f"Host: {parsed.hostname}")
@@ -94,7 +96,8 @@ async def test_connection():
     async_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
 
     # Strip query params that asyncpg doesn't understand
-    from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+    from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
     parsed = urlparse(async_url)
     qs = parse_qs(parsed.query)
     qs.pop("sslmode", None)
@@ -141,12 +144,14 @@ async def test_connection():
 
             # Check if we can create tables (test privileges)
             try:
-                await conn.execute(text("""
+                await conn.execute(
+                    text("""
                     CREATE TABLE IF NOT EXISTS _connection_test (
                         id SERIAL PRIMARY KEY,
                         test_value VARCHAR(50)
                     )
-                """))
+                """)
+                )
                 print_success("Can create tables (privileges OK)")
 
                 # Clean up test table
@@ -175,10 +180,10 @@ async def test_connection():
 
         print(f"{YELLOW}Troubleshooting steps:{RESET}")
         print(f"  1. Verify PostgreSQL is running: {BLUE}sudo service postgresql status{RESET}")
-        print(f"  2. Check DATABASE_URL in .env file")
+        print("  2. Check DATABASE_URL in .env file")
         print(f"  3. Test with psql: {BLUE}psql -h localhost -U your_user -d your_db{RESET}")
         print(f"  4. Check PostgreSQL logs: {BLUE}sudo tail -f /var/log/postgresql/*.log{RESET}")
-        print(f"  5. See POSTGRES_SETUP_WSL.md for more help\n")
+        print("  5. See POSTGRES_SETUP_WSL.md for more help\n")
 
         return False
 
@@ -194,6 +199,7 @@ def main():
     except Exception as e:
         print(f"\n{RED}Unexpected error: {e}{RESET}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
