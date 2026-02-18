@@ -51,7 +51,6 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(["created_by"], ["users.id"]),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("invite_code"),
     )
     op.create_index(op.f("ix_groups_invite_code"), "groups", ["invite_code"], unique=True)
 
