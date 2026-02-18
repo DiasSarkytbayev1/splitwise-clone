@@ -3,12 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.app.database import engine, Base
-from api.app.routers import auth, groups, members, expenses, debts
-from api.app.variables import MyVariables
-
 # Import models so they are registered with Base.metadata
 import api.app.models  # noqa: F401
+from api.app.database import Base, engine
+from api.app.routers import auth, debts, expenses, groups, members
+from api.app.variables import MyVariables
 
 
 @asynccontextmanager
@@ -49,6 +48,7 @@ async def health_check():
     """Simple health check endpoint."""
     return {"status": "ok", "service": "Expense Splitter API"}
 
+
 if __name__ == "__main__":
     import sys
     from pathlib import Path
@@ -57,6 +57,7 @@ if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
     import uvicorn
+
     uvicorn.run(
         "app.main:app",
         host=MyVariables.server_host,

@@ -1,5 +1,5 @@
-from api.app.models.user import User
 from api.app.database import Session
+from api.app.models.user import User
 from api.app.routers.auth import hash_password
 
 

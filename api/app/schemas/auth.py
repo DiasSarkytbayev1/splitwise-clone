@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+
 from pydantic import BaseModel, EmailStr
 
-
 # ── Requests ──────────────────────────────────────────────────────────────────
+
 
 class RegisterRequest(BaseModel):
     name: str
@@ -22,6 +23,7 @@ class LoginRequest(BaseModel):
 
 # ── Responses ─────────────────────────────────────────────────────────────────
 
+
 class UserResponse(BaseModel):
     id: uuid.UUID
     name: str
@@ -33,6 +35,7 @@ class UserResponse(BaseModel):
 
 class AuthResponse(BaseModel):
     """Response for login and register endpoints with JWT token."""
+
     access_token: str
     token_type: str = "bearer"
     user: UserResponse

@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.app.dependencies import get_db
 from api.app.auth import get_current_user
-from api.app.models.user import User
+from api.app.dependencies import get_db
 from api.app.models.group import Group
 from api.app.models.group_member import GroupMember
+from api.app.models.user import User
 from api.app.schemas.group import GroupCreateRequest, GroupResponse
 
 router = APIRouter(prefix="/groups", tags=["Groups"])
@@ -71,8 +71,5 @@ async def get_group_by_code(
 
     group = result.scalar_one_or_none()
     if group is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
     return group

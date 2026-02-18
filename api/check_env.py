@@ -105,7 +105,7 @@ def main():
     if not env_path.exists():
         print(f"{RED}✗ .env file not found at {env_path}{RESET}")
         print(f"{YELLOW}ℹ  Copy .env.example to .env and configure it:{RESET}")
-        print(f"   cp .env.example .env\n")
+        print("   cp .env.example .env\n")
         return False
 
     print(f"{GREEN}✓{RESET} .env file found at {env_path}\n")
