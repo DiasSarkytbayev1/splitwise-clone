@@ -44,11 +44,6 @@ class ExpenseService:
         expenses = self._expense_repo.find_by_group_id(group_id)
         return self._calculate_debt_matrix(expenses)
 
-    async def get_settlement_plan(self, group_id: str) -> list[tuple[User, User, float]]:
-        await self._get_group_or_raise(group_id)
-        expenses = await self._expense_repo.find_by_group_id(group_id)
-        return self._get_settlements(expenses)
-
     def settle_up(self, group_id: str, payer: User, payee: User, amount: float) -> Expense:
         self._get_group_or_raise(group_id)
         expenses = self._expense_repo.find_by_group_id(group_id)

@@ -80,7 +80,7 @@ async def list_debts(
     if group.debt_simplification:
         expense_repo = SQLAlchemyExpenseRepository(db)
         group_repo = SQLAlchemyGroupRepository(db)
-        expense_service = ExpenseService(expense_repo, group_repo)
+        ExpenseService(expense_repo, group_repo)
         # Fetch expenses and convert to domain objects
         expenses = await expense_repo.find_by_group_id(group_id)
         domain_expenses = []
