@@ -1,11 +1,12 @@
 # Splitwise Clone
 
-## I. Description
+# I. Description
 
 Expense splitting application built with FastAPI and PostgreSQL.
+
 Software Engineering course project - Harbour Space University.
 
-## II. Dev setup instructions (step-by-step)
+# II. Dev setup instructions (step-by-step)
 
 ```bash
 # 1. Setup PostgreSQL (automated)
@@ -15,30 +16,61 @@ bash scripts/setup_postgres.sh
 python scripts/test_db_connection.py
 
 # 3. Install and run
-cd api
-pip-sync requirements.txt
-python -m app.main
+pip-sync api/requirements.txt
+python -m api.app.main
 ```
 
-**Or manually:** See [POSTGRES_SETUP.md](POSTGRES_SETUP.md)
+# III. How to run tests
 
-Visit http://localhost:8000/docs
+## Test with curl:
+```bash
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test User","email":"test@example.com","password":"test123"}'
+```
+## Test with pytest:
+```bash
+# Run all tests
+pytest tests/ -v
 
-📖 **See [QUICKSTART.md](QUICKSTART.md) for detailed instructions**
+# Run specific test file
+pytest tests/test_auth.py -v
 
-## III. How to run tests
+# With coverage + threshold
+pytest tests/ --cov=api.app --cov-report=term-missing --cov-fail-under=90
+```
 
-## IV. How to run linters
+### Test Database Connection
 
-## V. How deployment works
+```bash
+python scripts/test_db_connection.py
+```
 
-## VI. Environmental variables' descriptions
+# IV. How to run code quality ensuring tools
 
-Required:
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET_KEY` - Secret for JWT tokens (generate with `openssl rand -hex 32`)
+```bash
+# Lint
+ruff check .
 
-Optional: See `.env.example` for all available options.
+# Format check
+ruff format --check .
+
+# Type checks
+mypy domains
+
+# Migration drift check (requires DATABASE_URL in environment)
+cd api && alembic check
+```
+
+# V. How deployment works
+
+# VI. Environmental variables' descriptions
+
+- Required:
+  - `DATABASE_URL` - PostgreSQL connection string
+  - `JWT_SECRET_KEY` - Secret for JWT tokens (generate with `openssl rand -hex 32`)
+- Optional: 
+  - See `.env.example` for all available options.
 
 ## Features
 
@@ -94,56 +126,24 @@ splitwise-clone/
 - `GET /debts/{group_id}` - Calculate debts
 - `GET /debts/{group_id}/settlements` - Get settlement plan
 
-### API Documentation (Swagger)
+## API Documentation (Swagger)
 
 Once the server is running, interactive API docs are available at:
 
-| UI | URL |
-|----|-----|
-| Swagger UI | http://localhost:8000/docs |
-| ReDoc | http://localhost:8000/redoc |
+| UI           | URL                                |
+|--------------|------------------------------------|
+| Swagger UI   | http://localhost:8000/docs         |
+| ReDoc        | http://localhost:8000/redoc        |
 | OpenAPI JSON | http://localhost:8000/openapi.json |
 
 Swagger UI lets you browse all endpoints, view request/response schemas, and send test requests directly from the browser.
-
-## Testing
-
-```bash
-# Run all tests
-pytest tests/ -v
-
-# Run specific test file
-pytest tests/test_auth.py -v
-
-# With coverage + threshold
-pytest tests/ --cov=api.app --cov-report=term-missing --cov-fail-under=90
-```
-
-## Code Quality
-
-```bash
-# Lint
-ruff check .
-
-# Format check
-ruff format --check .
-
-# Type checks
-mypy domains
-
-# Full test run with coverage threshold
-pytest --cov=api.app --cov-report=term-missing --cov-fail-under=90
-
-# Migration drift check (requires DATABASE_URL in environment)
-cd api && alembic check
-```
 
 ## Pre-commit Setup & Local Workflow
 
 ```bash
 # 1) Install dependencies
 cd api
-pip install -r requirements.txt
+pip-sync requirements.txt
 cd ..
 
 # 2) Install git hooks
@@ -162,7 +162,6 @@ Recommended local workflow before push:
 
 ## Documentation
 
-- **[QUICKSTART.md](QUICKSTART.md)** - Setup instructions
 - **[POSTGRES_SETUP.md](POSTGRES_SETUP.md)** - Database setup
 - **[API_TESTING_GUIDE.md](API_TESTING_GUIDE.md)** - Manual testing with curl/Postman
 - **[.env.example](.env.example)** - Environment variables
