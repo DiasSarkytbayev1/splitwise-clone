@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -37,11 +38,14 @@ async def _verify_group_membership(
 
 class SQLAlchemyExpenseRepository(ExpenseRepository):
     def __init__(self, db):
+        super().__init__()
         self.db = db
 
     async def find_by_group_id(self, group_id):
         from api.app.models.expense import Expense
-
+        import uuid
+        if isinstance(group_id, str):
+            group_id = uuid.UUID(group_id)
         result = await self.db.execute(select(Expense).where(Expense.group_id == group_id))
         expenses = result.scalars().all()
         # Convert to domain.Expense if needed, else return as is
@@ -50,6 +54,7 @@ class SQLAlchemyExpenseRepository(ExpenseRepository):
 
 class SQLAlchemyGroupRepository(GroupRepository):
     def __init__(self, db):
+        super().__init__()
         self.db = db
 
     async def find_by_id(self, group_id):
@@ -82,7 +87,7 @@ async def list_debts(
         group_repo = SQLAlchemyGroupRepository(db)
         ExpenseService(expense_repo, group_repo)
         # Fetch expenses and convert to domain objects
-        expenses = await expense_repo.find_by_group_id(group_id)
+        expenses = await expense_repo.find_by_group_id(str(group_id))
         domain_expenses = []
         for exp in expenses:
             # Fetch all shares for this expense
@@ -103,7 +108,7 @@ async def list_debts(
             DebtSummaryResponse(
                 debtor_id=getattr(debtor, 'id', debtor),
                 creditor_id=getattr(creditor, 'id', creditor),
-                total_owed=amount,
+                total_owed=Decimal(str(amount)),
             )
             for debtor, creditor, amount in settlements
         ]
@@ -118,13 +123,33 @@ async def list_debts(
             .where(Expense.group_id == group_id, ExpenseShare.status == "pending")
             .group_by(ExpenseShare.debtor_id, ExpenseShare.creditor_id)
         )
+        # Net out mutual debts between each pair
+        raw_debts = {}
+        for row in result.all():
+            key = (str(row.debtor_id), str(row.creditor_id))
+            raw_debts[key] = float(row.total_owed)
+        # Netting logic
+        net_debts = {}
+        processed = set()
+        for (debtor, creditor), amount in raw_debts.items():
+            if (creditor, debtor) in processed:
+                continue  # already processed reverse
+            reverse_amount = raw_debts.get((creditor, debtor), 0)
+            net = amount - reverse_amount
+            if net > 0:
+                net_debts[(debtor, creditor)] = net
+            elif net < 0:
+                net_debts[(creditor, debtor)] = -net
+            # else net == 0: skip
+            processed.add((debtor, creditor))
+            processed.add((creditor, debtor))
         return [
             DebtSummaryResponse(
-                debtor_id=row.debtor_id,
-                creditor_id=row.creditor_id,
-                total_owed=row.total_owed,
+                debtor_id=debtor,
+                creditor_id=creditor,
+                total_owed=amount,
             )
-            for row in result.all()
+            for (debtor, creditor), amount in net_debts.items()
         ]
 
 

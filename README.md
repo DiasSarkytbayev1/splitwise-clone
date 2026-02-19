@@ -83,7 +83,7 @@ This project is designed to be deployed on any cloud platform that supports Pyth
 - Required:
   - `DATABASE_URL` - PostgreSQL connection string
   - `JWT_SECRET_KEY` - Secret for JWT tokens (generate with `openssl rand -hex 32`)
-- Optional: 
+- Optional:
   - See `.env.example` for all available options.
 
 ## Features
@@ -273,4 +273,3 @@ python api/check_env.py
 # Test database
 python scripts/test_db_connection.py
 ```
-
