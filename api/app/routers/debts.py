@@ -91,19 +91,19 @@ async def list_debts(
         expenses = await expense_repo.find_by_group_id(str(group_id))
         domain_expenses = []
         for exp in expenses:
-            # Fetch all shares for this expense
             shares_result = await db.execute(select(ExpenseShare).where(ExpenseShare.expense_id == exp.id))
             shares = shares_result.scalars().all()
-            # Build set of domain User objects for debtors
-            debtors = set([type('User', (), {'id': str(s.debtor_id)})() for s in shares])
-            payer = type('User', (), {'id': str(exp.payer_id)})()
-            domain_expenses.append(type('Expense', (), {
-                'id': str(exp.id),
-                'group_id': str(exp.group_id),
-                'amount': float(exp.amount),
-                'payer': payer,
-                'debtors': debtors,
-            })())
+            # Use dataclasses for domain User and Expense
+            from domain import User as DomainUser, Expense as DomainExpense
+            debtors = set([DomainUser(id=str(s.debtor_id), name=None, email=None, password=None) for s in shares])
+            payer = DomainUser(id=str(exp.payer_id), name=None, email=None, password=None)
+            domain_expenses.append(DomainExpense(
+                id=str(exp.id),
+                group_id=str(exp.group_id),
+                amount=float(exp.amount),
+                payer=payer,
+                debtors=debtors,
+            ))
         settlements = ExpenseService._get_settlements(domain_expenses)
         return [
             DebtSummaryResponse(
