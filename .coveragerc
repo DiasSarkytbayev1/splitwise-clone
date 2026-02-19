@@ -59,4 +59,3 @@ omit =
     pyproject.toml
     *.egg-info/*
     tests/*
-

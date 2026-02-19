@@ -4,17 +4,17 @@ This project manages Python dependencies using [pip-tools](https://github.com/ja
 
 ## Workflow
 
-1. **Edit dependencies**  
+1. **Edit dependencies**
    Make changes to your dependencies in `api/requirements.in`.
 
-2. **Compile requirements**  
+2. **Compile requirements**
    Run:
    ```
    pip-compile api/requirements.in
    ```
    This generates/updates `api/requirements.txt` with pinned versions and hashes.
 
-3. **Sync your environment**  
+3. **Sync your environment**
    Run:
    ```
    pip-sync api/requirements.txt
