@@ -35,6 +35,32 @@ async def _verify_group_membership(
         )
 
 
+class SQLAlchemyExpenseRepository(ExpenseRepository):
+    def __init__(self, db):
+        self.db = db
+
+    async def find_by_group_id(self, group_id):
+        from api.app.models.expense import Expense
+
+        result = await self.db.execute(select(Expense).where(Expense.group_id == group_id))
+        expenses = result.scalars().all()
+        # Convert to domain.Expense if needed, else return as is
+        return expenses
+
+
+class SQLAlchemyGroupRepository(GroupRepository):
+    def __init__(self, db):
+        self.db = db
+
+    async def find_by_id(self, group_id):
+        from api.app.models.group import Group
+
+        result = await self.db.execute(select(Group).where(Group.id == group_id))
+        group = result.scalar_one_or_none()
+        # Convert to domain.Group if needed, else return as is
+        return group
+
+
 @router.get("", response_model=list[DebtSummaryResponse])
 async def list_debts(
     group_id: uuid.UUID,
@@ -52,16 +78,31 @@ async def list_debts(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
     if group.debt_simplification:
-        # Use settlement plan logic
-        expense_repo = ExpenseRepository(db)
-        group_repo = GroupRepository(db)
+        expense_repo = SQLAlchemyExpenseRepository(db)
+        group_repo = SQLAlchemyGroupRepository(db)
         expense_service = ExpenseService(expense_repo, group_repo)
-        settlements = await expense_service.get_settlement_plan(group_id)
-        # settlements: list[tuple[User, User, float]]
+        # Fetch expenses and convert to domain objects
+        expenses = await expense_repo.find_by_group_id(group_id)
+        domain_expenses = []
+        for exp in expenses:
+            # Fetch all shares for this expense
+            shares_result = await db.execute(select(ExpenseShare).where(ExpenseShare.expense_id == exp.id))
+            shares = shares_result.scalars().all()
+            # Build set of domain User objects for debtors
+            debtors = set([type('User', (), {'id': str(s.debtor_id)})() for s in shares])
+            payer = type('User', (), {'id': str(exp.payer_id)})()
+            domain_expenses.append(type('Expense', (), {
+                'id': str(exp.id),
+                'group_id': str(exp.group_id),
+                'amount': float(exp.amount),
+                'payer': payer,
+                'debtors': debtors,
+            })())
+        settlements = ExpenseService._get_settlements(domain_expenses)
         return [
             DebtSummaryResponse(
-                debtor_id=debtor.id,
-                creditor_id=creditor.id,
+                debtor_id=getattr(debtor, 'id', debtor),
+                creditor_id=getattr(creditor, 'id', creditor),
                 total_owed=amount,
             )
             for debtor, creditor, amount in settlements
