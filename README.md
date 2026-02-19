@@ -64,7 +64,21 @@ cd api && alembic check
 
 # V. How deployment works
 
-# VI. Environmental variables' descriptions
+This project is designed to be deployed on any cloud platform that supports Python applications with PostgreSQL databases (AWS, GCP, Heroku, Railway, etc.).
+
+**Key deployment considerations:**
+- Set all required environment variables (see `VI` below)
+- Use Alembic migrations in production (`alembic upgrade head`)
+- Run the application with a production ASGI server like Gunicorn or Uvicorn
+- Configure CORS settings appropriately for your domain
+- Enable HTTPS/TLS for API connections
+
+**Typical deployment steps:**
+1. Set `DATABASE_URL` and `JWT_SECRET_KEY` in production environment
+2. Run database migrations: `alembic upgrade head`
+3. Start the server: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker api.app.main:app`
+
+# VI. Environment variables' descriptions
 
 - Required:
   - `DATABASE_URL` - PostgreSQL connection string
@@ -166,6 +180,83 @@ Recommended local workflow before push:
 - **[API_TESTING_GUIDE.md](API_TESTING_GUIDE.md)** - Manual testing with curl/Postman
 - **[.env.example](.env.example)** - Environment variables
 
+## Database Migrations
+
+This project uses **Alembic** for database schema management and migrations.
+
+### Migration Workflow
+
+**Development (automatic):**
+- The application automatically creates all tables on startup via SQLAlchemy (see `api/app/main.py`)
+- This is convenient for local development but should NOT be used in production
+
+**Production (explicit):**
+- Always use Alembic migrations in production
+- Migrations ensure reproducible, versioned schema changes across environments
+
+### Common Migration Tasks
+
+#### Create a New Migration (after changing models)
+```bash
+cd api
+alembic revision --autogenerate -m "Add new column to users table"
+```
+
+#### Review the Migration
+Check the generated migration file in `api/alembic/versions/` before applying it.
+
+#### Apply Migrations (Upgrade)
+```bash
+cd api
+# Upgrade to the latest migration
+alembic upgrade head
+
+# Upgrade to a specific revision
+alembic upgrade <revision_id>
+
+# Upgrade by N steps
+alembic upgrade +2
+```
+
+#### Rollback Migrations (Downgrade)
+```bash
+cd api
+# Downgrade to the previous migration
+alembic downgrade -1
+
+# Downgrade to a specific revision
+alembic downgrade <revision_id>
+
+# Downgrade to base (empty schema)
+alembic downgrade base
+```
+
+#### Check Migration Status
+```bash
+cd api
+# View current revision
+alembic current
+
+# View migration history
+alembic history
+
+# Check for schema drift
+alembic check
+```
+
+### Alembic Configuration
+- **Location:** `api/alembic.ini` - Main Alembic config file
+- **Env script:** `api/alembic/env.py` - Runtime configuration for migrations
+- **Versions:** `api/alembic/versions/` - Migration scripts
+
+### Best Practices
+1. **Always review auto-generated migrations** before committing
+2. **Test migrations locally** before applying to production
+3. **Create descriptive migration names** (e.g., `add_phone_column_to_users`)
+4. **Never manually edit migration files** after applying them in production
+5. **Keep migrations small and focused** on a single schema change
+6. **Use `alembic check`** before deployment to verify schema alignment
+
 ## Development
 
 ```bash
@@ -182,3 +273,4 @@ python api/check_env.py
 # Test database
 python scripts/test_db_connection.py
 ```
+
