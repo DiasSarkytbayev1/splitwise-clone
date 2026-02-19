@@ -140,7 +140,17 @@ splitwise-clone/
 - `GET /debts/{group_id}` - Calculate debts
 - `GET /debts/{group_id}/settlements` - Get settlement plan
 
-## API Documentation (Swagger)
+### API Documentation (Swagger)
+
+Once the server is running, interactive API docs are available at:
+
+| UI | URL |
+|----|-----|
+| Swagger UI | http://localhost:8000/docs |
+| ReDoc | http://localhost:8000/redoc |
+| OpenAPI JSON | http://localhost:8000/openapi.json |
+
+Swagger UI lets you browse all endpoints, view request/response schemas, and send test requests directly from the browser.
 
 Once the server is running, interactive API docs are available at:
 
