@@ -81,9 +81,9 @@ class ExpenseService:
     def _get_group_or_raise(self, group_id: str) -> Group:
         group = self._group_repo.find_by_id(group_id)
         if hasattr(group, '__await__'):
-            # If async, run synchronously for legacy tests
             import asyncio
-            group = asyncio.get_event_loop().run_until_complete(group)
+            # Only run_until_complete if group is awaitable
+            group = asyncio.get_event_loop().run_until_complete(group)  # type: ignore
         if group is None:
             raise ValueError(f"Group with id '{group_id}' not found.")
         return group
