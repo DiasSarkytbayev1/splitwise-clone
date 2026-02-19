@@ -8,9 +8,13 @@ from api.app.auth import get_current_user
 from api.app.dependencies import get_db
 from api.app.models.expense import Expense
 from api.app.models.expense_share import ExpenseShare
+from api.app.models.group import Group
 from api.app.models.group_member import GroupMember
 from api.app.models.user import User
 from api.app.schemas.debt import DebtSummaryResponse, SettleResponse
+from domains.expense.repository import ExpenseRepository
+from domains.expense.service import ExpenseService
+from domains.group.repository import GroupRepository
 
 router = APIRouter(prefix="/groups/{group_id}/debts", tags=["Debts"])
 
@@ -41,25 +45,46 @@ async def list_debts(
     # Verify user is a member
     await _verify_group_membership(db, group_id, current_user.id)
 
-    result = await db.execute(
-        select(
-            ExpenseShare.debtor_id,
-            ExpenseShare.creditor_id,
-            func.sum(ExpenseShare.amount_owed).label("total_owed"),
-        )
-        .join(Expense, ExpenseShare.expense_id == Expense.id)
-        .where(Expense.group_id == group_id, ExpenseShare.status == "pending")
-        .group_by(ExpenseShare.debtor_id, ExpenseShare.creditor_id)
-    )
+    # Fetch group to check debt_simplification
+    group_result = await db.execute(select(Group).where(Group.id == group_id))
+    group = group_result.scalar_one_or_none()
+    if group is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
-    return [
-        DebtSummaryResponse(
-            debtor_id=row.debtor_id,
-            creditor_id=row.creditor_id,
-            total_owed=row.total_owed,
+    if group.debt_simplification:
+        # Use settlement plan logic
+        expense_repo = ExpenseRepository(db)
+        group_repo = GroupRepository(db)
+        expense_service = ExpenseService(expense_repo, group_repo)
+        settlements = await expense_service.get_settlement_plan(group_id)
+        # settlements: list[tuple[User, User, float]]
+        return [
+            DebtSummaryResponse(
+                debtor_id=debtor.id,
+                creditor_id=creditor.id,
+                total_owed=amount,
+            )
+            for debtor, creditor, amount in settlements
+        ]
+    else:
+        result = await db.execute(
+            select(
+                ExpenseShare.debtor_id,
+                ExpenseShare.creditor_id,
+                func.sum(ExpenseShare.amount_owed).label("total_owed"),
+            )
+            .join(Expense, ExpenseShare.expense_id == Expense.id)
+            .where(Expense.group_id == group_id, ExpenseShare.status == "pending")
+            .group_by(ExpenseShare.debtor_id, ExpenseShare.creditor_id)
         )
-        for row in result.all()
-    ]
+        return [
+            DebtSummaryResponse(
+                debtor_id=row.debtor_id,
+                creditor_id=row.creditor_id,
+                total_owed=row.total_owed,
+            )
+            for row in result.all()
+        ]
 
 
 @router.post("/{debt_id}/settle", response_model=SettleResponse)

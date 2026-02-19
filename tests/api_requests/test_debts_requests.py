@@ -51,3 +51,42 @@ def test_settle_debt_not_found_returns_404(client, expense_and_debt):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Debt not found in this group"
+
+
+def test_debts_respects_debt_simplification_toggle(client, expense_and_debt):
+    group_id = expense_and_debt["group_id"]
+    headers = expense_and_debt["owner"]["headers"]
+
+    # Ensure default is not simplified
+    response = client.get(f"/groups/{group_id}/debts", headers=headers)
+    assert response.status_code == 200
+    debts = response.json()
+    assert isinstance(debts, list)
+    # Save for comparison
+    normal_debts = [tuple((d["debtor_id"], d["creditor_id"], float(d["total_owed"]))) for d in debts]
+
+    # Toggle on debt_simplification
+    patch = client.patch(f"/groups/{group_id}", json={"debt_simplification": True}, headers=headers)
+    assert patch.status_code == 200
+    assert patch.json()["debt_simplification"] is True
+
+    # Now debts should be simplified
+    response = client.get(f"/groups/{group_id}/debts", headers=headers)
+    assert response.status_code == 200
+    debts_simplified = response.json()
+    assert isinstance(debts_simplified, list)
+    simplified = [tuple((d["debtor_id"], d["creditor_id"], float(d["total_owed"]))) for d in debts_simplified]
+    # Should be different if simplification is meaningful
+    assert simplified != normal_debts or len(simplified) == 0
+
+    # Toggle off again
+    patch = client.patch(f"/groups/{group_id}", json={"debt_simplification": False}, headers=headers)
+    assert patch.status_code == 200
+    assert patch.json()["debt_simplification"] is False
+
+    # Should match original
+    response = client.get(f"/groups/{group_id}/debts", headers=headers)
+    assert response.status_code == 200
+    debts_again = response.json()
+    normal_debts2 = [tuple((d["debtor_id"], d["creditor_id"], float(d["total_owed"]))) for d in debts_again]
+    assert normal_debts2 == normal_debts
