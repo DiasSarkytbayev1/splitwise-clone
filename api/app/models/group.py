@@ -3,12 +3,12 @@ import string
 import uuid
 
 from sqlalchemy import (
-    Boolean,
     TIMESTAMP,
+    Boolean,
+    Column,
     ForeignKey,
     String,
     text,
-    Column,
 )
 from sqlalchemy.dialects.postgresql import UUID
 
