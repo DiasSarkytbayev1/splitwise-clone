@@ -42,8 +42,9 @@ class SQLAlchemyExpenseRepository(ExpenseRepository):
         self.db = db
 
     async def find_by_group_id(self, group_id):
-        from api.app.models.expense import Expense
         import uuid
+
+        from api.app.models.expense import Expense
         if isinstance(group_id, str):
             group_id = uuid.UUID(group_id)
         result = await self.db.execute(select(Expense).where(Expense.group_id == group_id))
