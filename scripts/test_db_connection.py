@@ -24,7 +24,7 @@ try:
     from sqlalchemy.ext.asyncio import create_async_engine
 except ImportError as e:
     print(f"❌ Missing dependencies: {e}")
-    print("💡 Install them with: cd api && pip install -r requirements.txt")
+    print("💡 Install them with: cd api && pip-sync requirements.txt")
     sys.exit(1)
 
 # Color codes
@@ -169,7 +169,7 @@ async def test_connection():
         print(f"{GREEN}{'=' * 70}{RESET}\n")
 
         print_info("You can now start the application:")
-        print(f"  {BLUE}cd api && python3 -m app.main{RESET}\n")
+        print(f"  {BLUE}python3 -m api.app.main{RESET}\n")
 
         return True
 

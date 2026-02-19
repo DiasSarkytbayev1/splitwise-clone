@@ -159,8 +159,8 @@ echo -e "${GREEN}Your .env file has been updated with the database URL.${NC}\n"
 
 echo -e "${YELLOW}Next Steps:${NC}"
 echo -e "  1. Validate environment: ${BLUE}python3 api/check_env.py${NC}"
-echo -e "  2. Install dependencies: ${BLUE}cd api && pip install -r requirements.txt${NC}"
-echo -e "  3. Start the application: ${BLUE}python3 -m app.main${NC}"
+echo -e "  2. Install dependencies: ${BLUE}pip-sync api/requirements.txt${NC}"
+echo -e "  3. Start the application: ${BLUE}python3 -m api.app.main${NC}"
 echo -e "  4. Visit API docs: ${BLUE}http://localhost:8000/docs${NC}\n"
 
 echo -e "${YELLOW}To start PostgreSQL in the future:${NC}"

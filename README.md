@@ -1,9 +1,12 @@
 # Splitwise Clone
 
+# I. Description
+
 Expense splitting application built with FastAPI and PostgreSQL.
+
 Software Engineering course project - Harbour Space University.
 
-## Quick Start
+# II. Dev setup instructions (step-by-step)
 
 ```bash
 # 1. Setup PostgreSQL (automated)
@@ -13,16 +16,75 @@ bash scripts/setup_postgres.sh
 python scripts/test_db_connection.py
 
 # 3. Install and run
-cd api
-pip install -r requirements.txt
-python -m app.main
+pip-sync api/requirements.txt
+python -m api.app.main
 ```
 
-**Or manually:** See [POSTGRES_SETUP.md](POSTGRES_SETUP.md)
+# III. How to run tests
 
-Visit http://localhost:8000/docs
+## Test with curl:
+```bash
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test User","email":"test@example.com","password":"test123"}'
+```
+## Test with pytest:
+```bash
+# Run all tests
+pytest tests/ -v
 
-📖 **See [QUICKSTART.md](QUICKSTART.md) for detailed instructions**
+# Run specific test file
+pytest tests/test_auth.py -v
+
+# With coverage + threshold
+pytest tests/ --cov=api.app --cov-report=term-missing --cov-fail-under=90
+```
+
+### Test Database Connection
+
+```bash
+python scripts/test_db_connection.py
+```
+
+# IV. How to run code quality ensuring tools
+
+```bash
+# Lint
+ruff check .
+
+# Format check
+ruff format --check .
+
+# Type checks
+mypy domains
+
+# Migration drift check (requires DATABASE_URL in environment)
+cd api && alembic check
+```
+
+# V. How deployment works
+
+This project is designed to be deployed on any cloud platform that supports Python applications with PostgreSQL databases (AWS, GCP, Heroku, Railway, etc.).
+
+**Key deployment considerations:**
+- Set all required environment variables (see `VI` below)
+- Use Alembic migrations in production (`alembic upgrade head`)
+- Run the application with a production ASGI server like Gunicorn or Uvicorn
+- Configure CORS settings appropriately for your domain
+- Enable HTTPS/TLS for API connections
+
+**Typical deployment steps:**
+1. Set `DATABASE_URL` and `JWT_SECRET_KEY` in production environment
+2. Run database migrations: `alembic upgrade head`
+3. Start the server: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker api.app.main:app`
+
+# VI. Environment variables' descriptions
+
+- Required:
+  - `DATABASE_URL` - PostgreSQL connection string
+  - `JWT_SECRET_KEY` - Secret for JWT tokens (generate with `openssl rand -hex 32`)
+- Optional: 
+  - See `.env.example` for all available options.
 
 ## Features
 
@@ -49,7 +111,8 @@ splitwise-clone/
 │   │   ├── routers/      # API endpoints
 │   │   ├── schemas/      # Request/response schemas
 │   │   └── main.py       # Application entry
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── requirements.in
 ├── domains/              # Business logic
 │   ├── expense/
 │   └── group/
@@ -81,60 +144,20 @@ splitwise-clone/
 
 Once the server is running, interactive API docs are available at:
 
-| UI | URL |
-|----|-----|
-| Swagger UI | http://localhost:8000/docs |
-| ReDoc | http://localhost:8000/redoc |
+| UI           | URL                                |
+|--------------|------------------------------------|
+| Swagger UI   | http://localhost:8000/docs         |
+| ReDoc        | http://localhost:8000/redoc        |
 | OpenAPI JSON | http://localhost:8000/openapi.json |
 
 Swagger UI lets you browse all endpoints, view request/response schemas, and send test requests directly from the browser.
-
-## Environment Variables
-
-Required:
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET_KEY` - Secret for JWT tokens (generate with `openssl rand -hex 32`)
-
-Optional: See `.env.example` for all available options.
-
-## Testing
-
-```bash
-# Run all tests
-pytest tests/ -v
-
-# Run specific test file
-pytest tests/test_auth.py -v
-
-# With coverage + threshold
-pytest tests/ --cov=api.app --cov-report=term-missing --cov-fail-under=90
-```
-
-## Code Quality
-
-```bash
-# Lint
-ruff check .
-
-# Format check
-ruff format --check .
-
-# Type checks
-mypy domains
-
-# Full test run with coverage threshold
-pytest --cov=api.app --cov-report=term-missing --cov-fail-under=90
-
-# Migration drift check (requires DATABASE_URL in environment)
-cd api && alembic check
-```
 
 ## Pre-commit Setup & Local Workflow
 
 ```bash
 # 1) Install dependencies
 cd api
-pip install -r requirements.txt
+pip-sync requirements.txt
 cd ..
 
 # 2) Install git hooks
@@ -153,10 +176,86 @@ Recommended local workflow before push:
 
 ## Documentation
 
-- **[QUICKSTART.md](QUICKSTART.md)** - Setup instructions
 - **[POSTGRES_SETUP.md](POSTGRES_SETUP.md)** - Database setup
 - **[API_TESTING_GUIDE.md](API_TESTING_GUIDE.md)** - Manual testing with curl/Postman
 - **[.env.example](.env.example)** - Environment variables
+
+## Database Migrations
+
+This project uses **Alembic** for database schema management and migrations.
+
+### Migration Workflow
+
+**Development (automatic):**
+- The application automatically creates all tables on startup via SQLAlchemy (see `api/app/main.py`)
+- This is convenient for local development but should NOT be used in production
+
+**Production (explicit):**
+- Always use Alembic migrations in production
+- Migrations ensure reproducible, versioned schema changes across environments
+
+### Common Migration Tasks
+
+#### Create a New Migration (after changing models)
+```bash
+cd api
+alembic revision --autogenerate -m "Add new column to users table"
+```
+
+#### Review the Migration
+Check the generated migration file in `api/alembic/versions/` before applying it.
+
+#### Apply Migrations (Upgrade)
+```bash
+cd api
+# Upgrade to the latest migration
+alembic upgrade head
+
+# Upgrade to a specific revision
+alembic upgrade <revision_id>
+
+# Upgrade by N steps
+alembic upgrade +2
+```
+
+#### Rollback Migrations (Downgrade)
+```bash
+cd api
+# Downgrade to the previous migration
+alembic downgrade -1
+
+# Downgrade to a specific revision
+alembic downgrade <revision_id>
+
+# Downgrade to base (empty schema)
+alembic downgrade base
+```
+
+#### Check Migration Status
+```bash
+cd api
+# View current revision
+alembic current
+
+# View migration history
+alembic history
+
+# Check for schema drift
+alembic check
+```
+
+### Alembic Configuration
+- **Location:** `api/alembic.ini` - Main Alembic config file
+- **Env script:** `api/alembic/env.py` - Runtime configuration for migrations
+- **Versions:** `api/alembic/versions/` - Migration scripts
+
+### Best Practices
+1. **Always review auto-generated migrations** before committing
+2. **Test migrations locally** before applying to production
+3. **Create descriptive migration names** (e.g., `add_phone_column_to_users`)
+4. **Never manually edit migration files** after applying them in production
+5. **Keep migrations small and focused** on a single schema change
+6. **Use `alembic check`** before deployment to verify schema alignment
 
 ## Development
 
@@ -174,3 +273,4 @@ python api/check_env.py
 # Test database
 python scripts/test_db_connection.py
 ```
+
