@@ -44,11 +44,6 @@ class ExpenseService:
         expenses = self._expense_repo.find_by_group_id(group_id)
         return self._calculate_debt_matrix(expenses)
 
-    def get_settlement_plan(self, group_id: str) -> list[tuple[User, User, float]]:
-        self._get_group_or_raise(group_id)
-        expenses = self._expense_repo.find_by_group_id(group_id)
-        return self._get_settlements(expenses)
-
     def settle_up(self, group_id: str, payer: User, payee: User, amount: float) -> Expense:
         self._get_group_or_raise(group_id)
         expenses = self._expense_repo.find_by_group_id(group_id)
@@ -85,9 +80,21 @@ class ExpenseService:
 
     def _get_group_or_raise(self, group_id: str) -> Group:
         group = self._group_repo.find_by_id(group_id)
+        if hasattr(group, '__await__'):
+            import asyncio
+            # Only run_until_complete if group is awaitable
+            group = asyncio.get_event_loop().run_until_complete(group)  # type: ignore
         if group is None:
             raise ValueError(f"Group with id '{group_id}' not found.")
         return group
+
+    def get_settlement_plan(self, group_id: str) -> list[tuple[User, User, float]]:
+        self._get_group_or_raise(group_id)
+        expenses = self._expense_repo.find_by_group_id(group_id)
+        if hasattr(expenses, '__await__'):
+            import asyncio
+            expenses = asyncio.get_event_loop().run_until_complete(expenses)
+        return self._get_settlements(expenses)
 
     @staticmethod
     def _calculate_debt_matrix(

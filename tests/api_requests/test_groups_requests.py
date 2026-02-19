@@ -54,3 +54,44 @@ def test_get_group_not_found_returns_404(client, auth_user):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Group not found"
+
+
+def test_group_response_includes_debt_simplification(client, auth_user):
+    response = client.post(
+        "/groups",
+        json={"name": "Test Group", "currency_code": "USD"},
+        headers=auth_user["headers"],
+    )
+    assert response.status_code == 201
+    group = response.json()
+    assert "debt_simplification" in group
+    assert group["debt_simplification"] is False
+
+    # Now fetch by id
+    response = client.get(f"/groups/{group['id']}", headers=auth_user["headers"])
+    assert response.status_code == 200
+    group2 = response.json()
+    assert group2["debt_simplification"] is False
+
+
+def test_patch_group_toggle_debt_simplification(client, auth_user, created_group):
+    group_id = created_group["id"]
+    # Toggle on
+    response = client.patch(
+        f"/groups/{group_id}",
+        json={"debt_simplification": True},
+        headers=auth_user["headers"],
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["debt_simplification"] is True
+
+    # Toggle off
+    response = client.patch(
+        f"/groups/{group_id}",
+        json={"debt_simplification": False},
+        headers=auth_user["headers"],
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["debt_simplification"] is False

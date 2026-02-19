@@ -1,7 +1,7 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Body, Depends, HTTPException, status
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.app.auth import get_current_user
@@ -36,13 +36,12 @@ async def create_group(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new group. The creator is automatically added as a member."""
-    group = Group(
-        name=body.name,
-        type=body.type,
-        currency_code=body.currency_code,
-        cover_image=body.cover_image,
-        created_by=current_user.id,
-    )
+    group = Group()
+    group.name = body.name
+    group.type = body.type
+    group.currency_code = body.currency_code
+    group.cover_image = body.cover_image
+    group.created_by = current_user.id
     db.add(group)
     await db.flush()  # populate group.id and invite_code
 
@@ -72,4 +71,44 @@ async def get_group_by_code(
     group = result.scalar_one_or_none()
     if group is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
+    return group
+
+
+@router.patch("/{code}", response_model=GroupResponse)
+async def update_group_by_code(
+    code: str,
+    debt_simplification: bool = Body(..., embed=True),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update group by invite code or group ID (toggle debt_simplification)."""
+    # Try to parse as UUID first (for PATCH /groups/:id)
+    try:
+        group_id = uuid.UUID(code)
+        result = await db.execute(select(Group).where(Group.id == group_id))
+    except ValueError:
+        # Not a UUID, treat as invite code (for PATCH /groups/:code)
+        result = await db.execute(select(Group).where(Group.invite_code == code))
+
+    group = result.scalar_one_or_none()
+    if group is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
+
+    # Only allow group members to update
+    member_result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == group.id,
+            GroupMember.user_id == current_user.id,
+        )
+    )
+    if member_result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this group")
+
+    await db.execute(
+        update(Group)
+        .where(Group.id == group.id)
+        .values(debt_simplification=debt_simplification)
+    )
+    await db.commit()
+    await db.refresh(group)
     return group
