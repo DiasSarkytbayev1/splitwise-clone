@@ -102,12 +102,12 @@ async def update_group_by_code(
         )
     )
     if member_result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this group")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this group"
+        )
 
     await db.execute(
-        update(Group)
-        .where(Group.id == group.id)
-        .values(debt_simplification=debt_simplification)
+        update(Group).where(Group.id == group.id).values(debt_simplification=debt_simplification)
     )
     await db.commit()
     await db.refresh(group)

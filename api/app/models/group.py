@@ -34,7 +34,7 @@ class Group(Base):
         String(20), unique=True, nullable=False, default=_generate_invite_code, index=True
     )
 
-    debt_simplification = Column(Boolean, nullable=False, default=False)
+    debt_simplification = Column(Boolean, nullable=False, default=False, server_default=text("false"))
 
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
