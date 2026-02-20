@@ -45,11 +45,11 @@ class SQLAlchemyExpenseRepository(ExpenseRepository):
         import uuid
 
         from api.app.models.expense import Expense
+
         if isinstance(group_id, str):
             group_id = uuid.UUID(group_id)
         result = await self.db.execute(select(Expense).where(Expense.group_id == group_id))
         expenses = result.scalars().all()
-        # Convert to domain.Expense if needed, else return as is
         return expenses
 
 
@@ -63,7 +63,6 @@ class SQLAlchemyGroupRepository(GroupRepository):
 
         result = await self.db.execute(select(Group).where(Group.id == group_id))
         group = result.scalar_one_or_none()
-        # Convert to domain.Group if needed, else return as is
         return group
 
 
@@ -84,31 +83,47 @@ async def list_debts(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
     if group.debt_simplification:
-        expense_repo = SQLAlchemyExpenseRepository(db)
-        group_repo = SQLAlchemyGroupRepository(db)
-        ExpenseService(expense_repo, group_repo)
-        # Fetch expenses and convert to domain objects
-        expenses = await expense_repo.find_by_group_id(str(group_id))
+        from domain import Expense as DomainExpense
+        from domain import User as DomainUser
+
+        # 1. Implement User Cache to maintain object identity for the algorithm
+        user_cache = {}
+
+        def get_domain_user(user_id: str) -> DomainUser:
+            if user_id not in user_cache:
+                user_cache[user_id] = DomainUser(id=user_id, name=None, email=None, password=None)
+            return user_cache[user_id]
+
+        # 2. Fetch pending shares directly instead of trusting total expense amounts.
+        shares_result = await db.execute(
+            select(ExpenseShare)
+            .join(Expense, ExpenseShare.expense_id == Expense.id)
+            .where(Expense.group_id == group_id, ExpenseShare.status == "pending")
+        )
+        shares = shares_result.scalars().all()
+
         domain_expenses = []
-        for exp in expenses:
-            # Fetch all shares for this expense
-            shares_result = await db.execute(select(ExpenseShare).where(ExpenseShare.expense_id == exp.id))
-            shares = shares_result.scalars().all()
-            # Build set of domain User objects for debtors
-            debtors = set([type('User', (), {'id': str(s.debtor_id)})() for s in shares])
-            payer = type('User', (), {'id': str(exp.payer_id)})()
-            domain_expenses.append(type('Expense', (), {
-                'id': str(exp.id),
-                'group_id': str(exp.group_id),
-                'amount': float(exp.amount),
-                'payer': payer,
-                'debtors': debtors,
-            })())
+        for share in shares:
+            # Treat each pending share as a virtual 1-to-1 expense.
+            # This ensures the algorithm uses the exact `amount_owed`.
+            payer = get_domain_user(str(share.creditor_id))
+            debtor = get_domain_user(str(share.debtor_id))
+
+            domain_expenses.append(
+                DomainExpense(
+                    id=str(share.id),
+                    group_id=str(group_id),
+                    amount=float(share.amount_owed),
+                    payer=payer,
+                    debtors={debtor},
+                )
+            )
+
         settlements = ExpenseService._get_settlements(domain_expenses)
         return [
             DebtSummaryResponse(
-                debtor_id=getattr(debtor, 'id', debtor),
-                creditor_id=getattr(creditor, 'id', creditor),
+                debtor_id=getattr(debtor, "id", debtor),
+                creditor_id=getattr(creditor, "id", creditor),
                 total_owed=Decimal(str(amount)),
             )
             for debtor, creditor, amount in settlements
